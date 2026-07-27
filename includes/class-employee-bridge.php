@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class FA_Employee_Bridge
+ *  Class FA_Employee_Bridge
  * employee-manager の公開API関数をラップする。
  * 本プラグインは emp 系テーブルを直接クエリせず、必ずこのブリッジ経由で参照する。
  */
