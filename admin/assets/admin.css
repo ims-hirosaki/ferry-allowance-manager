@@ -173,8 +173,63 @@
     .fa-routes__layout {
         flex-direction: column;
     }
-
     .fa-routes__form {
+        flex-basis: auto;
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   車番マスタ管理（航路マスタと同じ2カラム構成）
+   ===================================================== */
+
+.fa-vehicles__layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.fa-vehicles__form {
+    flex: 0 0 320px;
+    max-width: 320px;
+}
+
+.fa-vehicles__list {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fa-vehicles__form .regular-text,
+.fa-vehicles__form input[type="text"],
+.fa-vehicles__form input[type="search"],
+.fa-vehicles__form select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+.fa-vehicles__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.fa-vehicles__toolbar #fa-vehicle-search {
+    flex: 1 1 auto;
+}
+
+.fa-vehicles .fa-table td:last-child {
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 1100px) {
+    .fa-vehicles__layout {
+        flex-direction: column;
+    }
+    .fa-vehicles__form {
         flex-basis: auto;
         max-width: none;
         width: 100%;
