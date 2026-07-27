@@ -1,6 +1,6 @@
 /**
  * フェリー手当管理 — 管理画面共通スタイル
- * すべて .fa-wrap 配下にスコープし、WordUpのデフォルトや他プラグインと競合させない。
+ * すべて .fa-wrap 配下にスコープし、WordPressのデフォルトや他プラグインと競合させない。
  */
 
 .fa-wrap {
@@ -19,6 +19,7 @@
     padding: 16px 18px;
     margin: 0 0 16px;
     box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+    box-sizing: border-box;
 }
 
 .fa-card__title {
@@ -75,21 +76,26 @@
 
 .fa-field label {
     display: inline-block;
-    min-width: 8em;
     font-weight: 600;
 }
 
 /* メッセージ */
 .fa-msg {
     margin: 10px 0;
+    padding: 8px 12px;
+    border-radius: 4px;
 }
 
 .fa-msg.is-error {
     color: #b32d2e;
+    background: #fcf0f1;
+    border: 1px solid #f0c3c5;
 }
 
 .fa-msg.is-success {
     color: #1a7f37;
+    background: #edfaef;
+    border: 1px solid #b7e3c0;
 }
 
 /* 小さめの補助ボタン */
@@ -119,11 +125,33 @@
     min-width: 0;
 }
 
+/* フォーム内の入力欄はカラム幅にフィットさせる
+   （WordPressの .regular-text は固定幅ではみ出すため上書き） */
+.fa-routes__form .regular-text,
+.fa-routes__form input[type="text"],
+.fa-routes__form input[type="number"],
+.fa-routes__form input[type="search"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+/* 表示順だけは短くてよい */
+.fa-routes__form .small-text {
+    width: 100px;
+    max-width: 100px;
+}
+
 .fa-routes__toolbar {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-bottom: 12px;
+}
+
+.fa-routes__toolbar #fa-route-search {
+    flex: 1 1 auto;
 }
 
 .fa-routes__inactive {
@@ -145,6 +173,7 @@
     .fa-routes__layout {
         flex-direction: column;
     }
+
     .fa-routes__form {
         flex-basis: auto;
         max-width: none;
