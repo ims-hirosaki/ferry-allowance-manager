@@ -235,3 +235,58 @@
         width: 100%;
     }
 }
+
+/* =====================================================
+   フェリー手当入力
+   ===================================================== */
+
+.fa-entry-table th,
+.fa-entry-table td {
+    padding: 6px 8px;
+}
+
+/* セル内の入力欄はセル幅にフィット */
+.fa-entry-table input[type="text"],
+.fa-entry-table input[type="date"] {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* 自動反映（読み取り専用）欄はグレー背景 */
+.fa-entry-table input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+/* 手当欄は右寄せ */
+.fa-entry-table .fa-e-allow {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* マスタに無い入力（航路番号・車番）の警告表示 */
+.fa-entry-table input.is-invalid {
+    border-color: #d63638;
+    background: #fcf0f1;
+}
+
+/* 合計行 */
+.fa-entry-table tfoot th {
+    background: #eef2f6;
+    color: #1e3a5f;
+    font-size: 14px;
+}
+
+/* 重複警告テキスト */
+.fa-warn {
+    display: inline-block;
+    margin-top: 6px;
+    color: #8a6d00;
+}
+
+/* メッセージ内の改行を活かす */
+#fa-entry-msg {
+    line-height: 1.7;
+}

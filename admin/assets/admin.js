@@ -30,23 +30,20 @@
         return n.toLocaleString('ja-JP');
     }
 
-    // HTMLエスケープ（一覧描画時のXSS対策）
     function esc(s) {
         return $('<div>').text(s == null ? '' : String(s)).html();
     }
 
-    // 画面上部メッセージ表示
     function showMsg($box, text, isError) {
         $box.removeClass('is-error is-success')
             .addClass(isError ? 'is-error' : 'is-success')
-            .text(text)
+            .html(text)
             .show();
         if (!isError) {
-            setTimeout(function () { $box.fadeOut(300); }, 2500);
+            setTimeout(function () { $box.fadeOut(300); }, 3000);
         }
     }
 
-    // 名前空間公開
     window.FerryAllowance = {
         data: FA,
         post: faPost,
@@ -318,15 +315,11 @@
         function fillForm(data) {
             $id.val(data.id);
             $code.val(data.code);
-
-            // 在籍者リストに無い社員コード（退職者等）でも編集できるよう、
-            // 該当optionが無ければ一時的に追加してから選択する。
             if (data.emp && $emp.find('option[value="' + data.emp + '"]').length === 0) {
                 var label = data.empname ? data.empname : data.emp;
                 $emp.append($('<option>').val(data.emp).text(label + '（現在は対象外）'));
             }
             $emp.val(data.emp);
-
             $title.text('車番を編集（' + data.code + '）');
             $saveBtn.text('更新');
             $resetBtn.show();
@@ -413,11 +406,212 @@
     }
 
     // =====================================================
+    //  フェリー手当入力
+    // =====================================================
+
+    function initEntry() {
+
+        var $msg    = $('#fa-entry-msg');
+        var $tbody  = $('#fa-entry-tbody');
+        var $total  = $('#fa-entry-total');
+        var $addBtn = $('#fa-entry-add-row');
+        var $saveBtn = $('#fa-entry-save');
+
+        // 航路マップ（route_no => {route_name, allowance}）
+        var routeByNo = {};
+        (FA.routes || []).forEach(function (r) {
+            routeByNo[String(r.route_no)] = { name: r.route_name, allowance: parseInt(r.allowance, 10) || 0 };
+        });
+
+        // 車番マップ（code => {employee_code, employee_name}）
+        var vehicles = FA.vehicles || {};
+
+        // データリスト生成
+        var routeOptions = (FA.routes || []).map(function (r) {
+            // 番号でも航路名でも引けるよう、値に両方を含める
+            return '<option value="' + esc(r.route_no + ' ' + r.route_name) + '"></option>';
+        }).join('');
+        $('#fa-route-datalist').html(routeOptions);
+
+        var vehicleOptions = Object.keys(vehicles).map(function (code) {
+            return '<option value="' + esc(code) + '">' + esc(vehicles[code].employee_name) + '</option>';
+        }).join('');
+        $('#fa-vehicle-datalist').html(vehicleOptions);
+
+        // 航路番号フィールドの入力値から route_no を取り出す（先頭の数値）
+        function parseRouteNo(val) {
+            var m = String(val).match(/\d+/);
+            return m ? m[0] : '';
+        }
+
+        function rowHtml() {
+            return '' +
+                '<tr class="fa-entry-row">' +
+                    '<td><input type="date" class="fa-e-date"></td>' +
+                    '<td><input type="text" class="fa-e-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名"></td>' +
+                    '<td><input type="text" class="fa-e-routename" readonly tabindex="-1"></td>' +
+                    '<td><input type="text" class="fa-e-vehicle" list="fa-vehicle-datalist" placeholder="車番"></td>' +
+                    '<td><input type="text" class="fa-e-empname" readonly tabindex="-1"></td>' +
+                    '<td><input type="text" class="fa-e-allow fa-num" readonly tabindex="-1"></td>' +
+                    '<td><button type="button" class="button fa-btn-sm js-row-del">削除</button></td>' +
+                '</tr>';
+        }
+
+        function addRow(n) {
+            n = n || 1;
+            var html = '';
+            for (var i = 0; i < n; i++) { html += rowHtml(); }
+            $tbody.append(html);
+        }
+
+        function ensureTrailingBlankRow() {
+            // 最終行が入力済みなら空行を1つ足す（連続入力しやすく）
+            var $last = $tbody.find('tr.fa-entry-row').last();
+            if (!$last.length) { addRow(1); return; }
+            var hasInput = $last.find('.fa-e-date').val() ||
+                           $last.find('.fa-e-routeinput').val() ||
+                           $last.find('.fa-e-vehicle').val();
+            if (hasInput) { addRow(1); }
+        }
+
+        function recalcTotal() {
+            var sum = 0;
+            $tbody.find('tr.fa-entry-row').each(function () {
+                var a = parseInt($(this).find('.fa-e-allow').val().replace(/[^\d-]/g, ''), 10);
+                if (!isNaN(a)) { sum += a; }
+            });
+            $total.text(faFormatNumber(sum));
+        }
+
+        // 航路番号入力 → 航路名・手当を反映
+        $tbody.on('input change', '.fa-e-routeinput', function () {
+            var $row = $(this).closest('tr');
+            var no = parseRouteNo($(this).val());
+            var $name = $row.find('.fa-e-routename');
+            var $allow = $row.find('.fa-e-allow');
+            if (no && routeByNo[no]) {
+                $name.val(routeByNo[no].name);
+                $allow.val(faFormatNumber(routeByNo[no].allowance));
+                $(this).removeClass('is-invalid');
+            } else {
+                $name.val('');
+                $allow.val('');
+                if ($(this).val()) { $(this).addClass('is-invalid'); }
+                else { $(this).removeClass('is-invalid'); }
+            }
+            recalcTotal();
+            ensureTrailingBlankRow();
+        });
+
+        // 車番入力 → 乗車名を反映
+        $tbody.on('input change', '.fa-e-vehicle', function () {
+            var $row = $(this).closest('tr');
+            var code = $.trim($(this).val());
+            var $emp = $row.find('.fa-e-empname');
+            if (code && vehicles[code]) {
+                $emp.val(vehicles[code].employee_name);
+                $(this).removeClass('is-invalid');
+            } else {
+                $emp.val('');
+                if (code) { $(this).addClass('is-invalid'); }
+                else { $(this).removeClass('is-invalid'); }
+            }
+            ensureTrailingBlankRow();
+        });
+
+        $tbody.on('input change', '.fa-e-date', function () {
+            ensureTrailingBlankRow();
+        });
+
+        // 行削除
+        $tbody.on('click', '.js-row-del', function () {
+            $(this).closest('tr').remove();
+            if (!$tbody.find('tr.fa-entry-row').length) { addRow(1); }
+            recalcTotal();
+        });
+
+        $addBtn.on('click', function () { addRow(1); });
+
+        // 登録
+        $saveBtn.on('click', function () {
+            $msg.hide();
+            var rows = [];
+            var clientErrors = [];
+
+            $tbody.find('tr.fa-entry-row').each(function (idx) {
+                var $r = $(this);
+                var date = $.trim($r.find('.fa-e-date').val());
+                var routeRaw = $.trim($r.find('.fa-e-routeinput').val());
+                var vehicle = $.trim($r.find('.fa-e-vehicle').val());
+
+                // すべて空の行はスキップ
+                if (!date && !routeRaw && !vehicle) { return; }
+
+                var lineNo = idx + 1;
+                var no = parseRouteNo(routeRaw);
+
+                if (!date) { clientErrors.push(lineNo + '行目：日付を入力してください。'); }
+                if (!no || !routeByNo[no]) { clientErrors.push(lineNo + '行目：航路番号が正しくありません。'); }
+                if (!vehicle) { clientErrors.push(lineNo + '行目：車番を入力してください。'); }
+                else if (!vehicles[vehicle]) { clientErrors.push(lineNo + '行目：車番「' + vehicle + '」は車番マスタにありません。'); }
+
+                rows.push({ use_date: date, route_no: no, vehicle_code: vehicle });
+            });
+
+            if (!rows.length) {
+                showMsg($msg, '入力された行がありません。', true);
+                return;
+            }
+            if (clientErrors.length) {
+                showMsg($msg, '入力内容にエラーがあります。<br>' + clientErrors.map(esc).join('<br>'), true);
+                return;
+            }
+
+            $saveBtn.prop('disabled', true);
+
+            faPost('fa_record_save', 'record', {
+                rows_json: JSON.stringify(rows)
+            }).done(function (res) {
+                if (res && res.success) {
+                    var msg = (res.data.message || '登録しました。');
+                    if (res.data.warnings && res.data.warnings.length) {
+                        msg += '<br><span class="fa-warn">【重複警告】<br>' +
+                               res.data.warnings.map(esc).join('<br>') + '</span>';
+                    }
+                    showMsg($msg, msg, false);
+                    // シートをリセット
+                    $tbody.empty();
+                    addRow(3);
+                    recalcTotal();
+                    $('html, body').animate({ scrollTop: 0 }, 200);
+                } else {
+                    var em = (res && res.data && res.data.message) ? res.data.message : '登録に失敗しました。';
+                    if (res && res.data && res.data.errors && res.data.errors.length) {
+                        em += '<br>' + res.data.errors.map(esc).join('<br>');
+                    }
+                    showMsg($msg, em, true);
+                }
+            }).fail(function () {
+                showMsg($msg, '通信エラーが発生しました。', true);
+            }).always(function () {
+                $saveBtn.prop('disabled', false);
+            });
+        });
+
+        // 初期3行
+        addRow(3);
+        recalcTotal();
+    }
+
+    // =====================================================
     //  画面分岐
     // =====================================================
 
     $(function () {
         switch (FA.page) {
+            case 'ferry-allowance':
+                initEntry();
+                break;
             case 'ferry-allowance-routes':
                 initRoutes();
                 break;

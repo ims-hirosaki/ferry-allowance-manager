@@ -102,6 +102,7 @@ class FA_Admin_Menu {
                 'nonce'   => array(
                     'vehicle' => wp_create_nonce( FA_Vehicle::NONCE_ACTION ),
                     'route'   => wp_create_nonce( FA_Route::NONCE_ACTION ),
+                    'record'  => class_exists( 'FA_Record' ) ? wp_create_nonce( FA_Record::NONCE_ACTION ) : '',
                 ),
                 // 入力フォーム（A案サジェスト／自動反映）用マスタ
                 'routes'    => FA_Route::get_map_for_js(),
@@ -145,8 +146,14 @@ class FA_Admin_Menu {
         add_action( 'wp_ajax_fa_route_toggle',   array( 'FA_Route', 'ajax_toggle' ) );
         add_action( 'wp_ajax_fa_route_delete',   array( 'FA_Route', 'ajax_delete' ) );
 
-        // 入力・サマリのAJAXは、それぞれのクラス作成時にここへ追加する。
-        // if ( class_exists( 'FA_Record' ) ) { ... }
+        // 利用実績（フェリー手当入力）
+        if ( class_exists( 'FA_Record' ) ) {
+            add_action( 'wp_ajax_fa_record_save',     array( 'FA_Record', 'ajax_save' ) );
+            add_action( 'wp_ajax_fa_record_get_list', array( 'FA_Record', 'ajax_get_list' ) );
+            add_action( 'wp_ajax_fa_record_delete',   array( 'FA_Record', 'ajax_delete' ) );
+        }
+
+        // サマリのAJAXは、FA_Summary 作成時にここへ追加する。
         // if ( class_exists( 'FA_Summary' ) ) { ... }
     }
 
