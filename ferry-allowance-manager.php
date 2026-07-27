@@ -21,7 +21,6 @@ define( 'FA_PLUGIN_FILE', __FILE__ );
 
 // ===== 依存ファイルの読み込み =====
 require_once FA_PLUGIN_DIR . 'includes/class-db-install.php';
-require_once FA_PLUGIN_DIR . 'includes/class-db-install.php';
 require_once FA_PLUGIN_DIR . 'includes/class-employee-bridge.php';
 require_once FA_PLUGIN_DIR . 'includes/class-vehicle.php';
 require_once FA_PLUGIN_DIR . 'includes/class-route.php';
