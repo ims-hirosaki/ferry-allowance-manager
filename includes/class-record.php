@@ -193,6 +193,96 @@ class FA_Record {
         return $rows;
     }
 
+    public static function get_by_id( $id ) {
+        global $wpdb;
+        $table = FA_DB_Install::table_records();
+        return $wpdb->get_row(
+            $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", (int) $id ) // phpcs:ignore
+        );
+    }
+
+    /**
+     * 1件更新（日付・航路・車番を編集）
+     * 保存時と同じく航路・従業員のスナップショットを取り直す。
+     * 同一社員＋同一日＋同一航路の重複は警告のみ（自分自身は除外）。
+     *
+     * @param int   $id
+     * @param array $data  use_date, route_no, vehicle_code, note
+     * @return array
+     */
+    public static function update( $id, $data ) {
+        global $wpdb;
+
+        $id = (int) $id;
+        if ( $id <= 0 || ! self::get_by_id( $id ) ) {
+            return array( 'success' => false, 'message' => '対象の実績が見つかりません。' );
+        }
+
+        $use_date     = isset( $data['use_date'] )     ? trim( (string) $data['use_date'] ) : '';
+        $route_no     = isset( $data['route_no'] )     ? (int) $data['route_no'] : 0;
+        $vehicle_code = isset( $data['vehicle_code'] ) ? trim( (string) $data['vehicle_code'] ) : '';
+        $note         = isset( $data['note'] )         ? sanitize_text_field( (string) $data['note'] ) : '';
+
+        if ( '' === $use_date || ! self::valid_date( $use_date ) ) {
+            return array( 'success' => false, 'message' => '日付が正しくありません（YYYY-MM-DD）。' );
+        }
+        if ( $route_no <= 0 ) {
+            return array( 'success' => false, 'message' => '航路番号を入力してください。' );
+        }
+        $route = FA_Route::get_by_no( $route_no );
+        if ( ! $route ) {
+            return array( 'success' => false, 'message' => '航路番号 ' . $route_no . ' は航路マスタに見つかりません。' );
+        }
+        if ( '' === $vehicle_code ) {
+            return array( 'success' => false, 'message' => '車番を入力してください。' );
+        }
+        $veh = FA_Vehicle::get_by_code( $vehicle_code );
+        if ( ! $veh ) {
+            return array( 'success' => false, 'message' => '車番 ' . $vehicle_code . ' は車番マスタに登録されていません。' );
+        }
+
+        $emp_code = $veh->employee_code;
+        $emp_name = FA_Employee_Bridge::resolve_name( $emp_code, '' );
+
+        $table = FA_DB_Install::table_records();
+
+        // 重複チェック（自分自身は除外）
+        $dup = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table}` WHERE employee_code = %s AND use_date = %s AND route_id = %d AND id <> %d", // phpcs:ignore
+                $emp_code,
+                $use_date,
+                (int) $route->id,
+                $id
+            )
+        );
+
+        $wpdb->update(
+            $table,
+            array(
+                'employee_code' => $emp_code,
+                'employee_name' => $emp_name,
+                'vehicle_code'  => $vehicle_code,
+                'use_date'      => $use_date,
+                'route_id'      => (int) $route->id,
+                'route_no'      => (int) $route->route_no,
+                'route_name'    => $route->route_name,
+                'allowance'     => (int) $route->allowance,
+                'note'          => $note,
+                'updated_at'    => current_time( 'mysql' ),
+            ),
+            array( 'id' => $id ),
+            array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s' ),
+            array( '%d' )
+        );
+
+        $result = array( 'success' => true, 'message' => '実績を更新しました。' );
+        if ( $dup > 0 ) {
+            $result['warning'] = '同じ社員・日付・航路の実績が他にもあります（更新は行いました）。';
+        }
+        return $result;
+    }
+
     public static function delete( $id ) {
         global $wpdb;
         $table = FA_DB_Install::table_records();
@@ -249,6 +339,22 @@ class FA_Record {
             'vehicle_code'  => isset( $_POST['vehicle_code'] )  ? sanitize_text_field( wp_unslash( $_POST['vehicle_code'] ) )  : '',
         ) );
         wp_send_json_success( array( 'items' => $rows ) );
+    }
+
+    public static function ajax_update() {
+        self::verify();
+        $id   = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+        $data = array(
+            'use_date'     => isset( $_POST['use_date'] )     ? wp_unslash( $_POST['use_date'] )     : '',
+            'route_no'     => isset( $_POST['route_no'] )     ? (int) $_POST['route_no'] : 0,
+            'vehicle_code' => isset( $_POST['vehicle_code'] ) ? wp_unslash( $_POST['vehicle_code'] ) : '',
+            'note'         => isset( $_POST['note'] )         ? wp_unslash( $_POST['note'] )         : '',
+        );
+        $result = self::update( $id, $data );
+        if ( ! empty( $result['success'] ) ) {
+            wp_send_json_success( $result );
+        }
+        wp_send_json_error( $result );
     }
 
     public static function ajax_delete() {

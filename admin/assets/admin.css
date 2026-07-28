@@ -290,3 +290,62 @@
 #fa-entry-msg {
     line-height: 1.7;
 }
+
+/* =====================================================
+   月次サマリ / 実績一覧
+   ===================================================== */
+
+.fa-summary__toolbar,
+.fa-records__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.fa-summary__toolbar select,
+.fa-records__toolbar select {
+    min-width: 6em;
+}
+
+.fa-summary-table tfoot th,
+.fa-records-table tfoot th {
+    background: #eef2f6;
+    color: #1e3a5f;
+    font-size: 14px;
+}
+
+/* 実績編集フォーム */
+.fa-records__editcard {
+    border-left: 4px solid #1e3a5f;
+}
+
+.fa-records__editgrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.fa-records__editgrid .fa-field {
+    flex: 0 0 auto;
+}
+
+.fa-records__editgrid input[type="text"],
+.fa-records__editgrid input[type="date"] {
+    box-sizing: border-box;
+}
+
+.fa-records__editgrid input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+.fa-records__editgrid .is-invalid {
+    border-color: #d63638;
+    background: #fcf0f1;
+}
+
+.fa-records-table td:last-child {
+    white-space: nowrap;
+}
