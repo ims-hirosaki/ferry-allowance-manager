@@ -25,6 +25,7 @@ require_once FA_PLUGIN_DIR . 'includes/class-employee-bridge.php';
 require_once FA_PLUGIN_DIR . 'includes/class-vehicle.php';
 require_once FA_PLUGIN_DIR . 'includes/class-route.php';
 require_once FA_PLUGIN_DIR . 'admin/class-admin-menu.php';   // 追加
+require_once FA_PLUGIN_DIR . 'includes/class-summary.php';   // 追加
 // ===== 有効化フック =====
 register_activation_hook( __FILE__, 'fa_activate' );
 
