@@ -42,7 +42,10 @@ class FA_Summary {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT employee_code, SUM(allowance) AS total, COUNT(*) AS cnt
+                "SELECT employee_code,
+                        MAX(employee_name) AS employee_name,
+                        SUM(allowance) AS total,
+                        COUNT(*) AS cnt
                  FROM `{$table}`
                  WHERE use_date BETWEEN %s AND %s
                  GROUP BY employee_code
@@ -62,7 +65,9 @@ class FA_Summary {
         $grand_count = 0;
 
         foreach ( $rows as $r ) {
-            $name  = FA_Employee_Bridge::resolve_name( $r->employee_code, $r->employee_code, $map );
+            $fallback = ( '' !== (string) $r->employee_name ) ? $r->employee_name : $r->employee_code;
+            $name     = FA_Employee_Bridge::resolve_name( $r->employee_code, $fallback, $map );
+
             $total = (int) $r->total;
             $cnt   = (int) $r->cnt;
 
