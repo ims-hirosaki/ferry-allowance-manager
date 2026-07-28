@@ -74,6 +74,28 @@
         return m ? m[0] : '';
     }
 
+    // 全角数字・全角記号を半角へ
+    function toHalfWidth(s) {
+        return String(s)
+            .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+            .replace(/／/g, '/').replace(/．/g, '.').replace(/[－ー―]/g, '-');
+    }
+
+    // 'YYYY/MM/DD' 等を 'YYYY-MM-DD' に正規化。
+    // 返り値: '' = 空 / null = 形式不正 / 文字列 = 正規化済み
+    function normalizeDate(s) {
+        s = toHalfWidth(String(s).trim());
+        if (!s) { return ''; }
+        s = s.replace(/[./]/g, '-');
+        var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (!m) { return null; }
+        var y = +m[1], mo = +m[2], d = +m[3];
+        if (mo < 1 || mo > 12 || d < 1 || d > 31) { return null; }
+        var dt = new Date(y, mo - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) { return null; }
+        return y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
+    }
+
     window.FerryAllowance = {
         data: FA,
         post: faPost,
@@ -335,7 +357,7 @@
         function rowHtml() {
             return '' +
                 '<tr class="fa-entry-row">' +
-                    '<td><input type="date" class="fa-e-date"></td>' +
+                    '<td><input type="text" class="fa-e-date" placeholder="YYYY/MM/DD" inputmode="numeric"></td>' +
                     '<td><input type="text" class="fa-e-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名"></td>' +
                     '<td><input type="text" class="fa-e-routename" readonly tabindex="-1"></td>' +
                     '<td><input type="text" class="fa-e-vehicle" list="fa-vehicle-datalist" placeholder="車番"></td>' +
@@ -396,7 +418,16 @@
             ensureTrailingBlankRow();
         });
 
-        $tbody.on('input change', '.fa-e-date', function () { ensureTrailingBlankRow(); });
+        $tbody.on('input', '.fa-e-date', function () { ensureTrailingBlankRow(); });
+
+        // 日付は blur / change 時に YYYY-MM-DD へ正規化して表示（不正は赤表示）
+        $tbody.on('change blur', '.fa-e-date', function () {
+            var v = $.trim($(this).val());
+            if (!v) { $(this).removeClass('is-invalid'); return; }
+            var n = normalizeDate(v);
+            if (n) { $(this).val(n).removeClass('is-invalid'); }
+            else { $(this).addClass('is-invalid'); }
+        });
 
         $tbody.on('click', '.js-row-del', function () {
             $(this).closest('tr').remove();
@@ -413,19 +444,22 @@
 
             $tbody.find('tr.fa-entry-row').each(function (idx) {
                 var $r = $(this);
-                var date = $.trim($r.find('.fa-e-date').val());
+                var dateRaw = $.trim($r.find('.fa-e-date').val());
                 var routeRaw = $.trim($r.find('.fa-e-routeinput').val());
                 var vehicle = $.trim($r.find('.fa-e-vehicle').val());
-                if (!date && !routeRaw && !vehicle) { return; }
+                if (!dateRaw && !routeRaw && !vehicle) { return; }
 
                 var lineNo = idx + 1;
                 var no = parseRouteNo(routeRaw);
-                if (!date) { clientErrors.push(lineNo + '行目：日付を入力してください。'); }
+                var date = normalizeDate(dateRaw); // '' / null / 'YYYY-MM-DD'
+
+                if (!dateRaw) { clientErrors.push(lineNo + '行目：日付を入力してください。'); }
+                else if (date === null) { clientErrors.push(lineNo + '行目：日付は YYYY/MM/DD 形式で入力してください。'); }
                 if (!no || !routeByNo[no]) { clientErrors.push(lineNo + '行目：航路番号が正しくありません。'); }
                 if (!vehicle) { clientErrors.push(lineNo + '行目：車番を入力してください。'); }
                 else if (!vehicles[vehicle]) { clientErrors.push(lineNo + '行目：車番「' + vehicle + '」は車番マスタにありません。'); }
 
-                rows.push({ use_date: date, route_no: no, vehicle_code: vehicle });
+                rows.push({ use_date: date ? date : '', route_no: no, vehicle_code: vehicle });
             });
 
             if (!rows.length) { showMsg($msg, '入力された行がありません。', true); return; }
