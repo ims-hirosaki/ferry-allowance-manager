@@ -173,6 +173,7 @@
     .fa-routes__layout {
         flex-direction: column;
     }
+
     .fa-routes__form {
         flex-basis: auto;
         max-width: none;
@@ -229,6 +230,7 @@
     .fa-vehicles__layout {
         flex-direction: column;
     }
+
     .fa-vehicles__form {
         flex-basis: auto;
         max-width: none;
@@ -348,4 +350,93 @@
 
 .fa-records-table td:last-child {
     white-space: nowrap;
+}
+
+
+/* =====================================================
+   車番クイック登録モーダル（入力画面・実績一覧で共用）
+   ===================================================== */
+
+.fa-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100100;
+    /* WP管理バー(99999)より前面 */
+}
+
+.fa-modal {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+}
+
+.fa-modal__header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.fa-modal__body {
+    padding: 16px;
+}
+
+.fa-modal__body .fa-field {
+    margin-bottom: 14px;
+}
+
+.fa-modal__body .fa-field>label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.fa-modal__body input[type="text"],
+.fa-modal__body select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.fa-modal__body input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+.fa-modal__msg {
+    display: none;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border-left: 4px solid #d63638;
+    background: #fcf0f1;
+    color: #8a1f21;
+}
+
+.fa-modal__footer {
+    padding: 12px 16px;
+    background: #f6f7f7;
+    border-top: 1px solid #e2e4e7;
+    text-align: right;
+}
+
+.fa-modal__footer .button {
+    margin-left: 6px;
+}
+
+/* 未登録車番セルの「＋マスタ登録」ボタン */
+.fa-btn-regvehicle {
+    display: block;
+    margin-top: 4px;
+    padding: 0 6px;
+    height: 24px;
+    line-height: 22px;
+    font-size: 11px;
 }
