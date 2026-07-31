@@ -1,6 +1,6 @@
 /**
  * フェリー手当管理 — 管理画面共通スタイル
- * すべて .fa-wrap 配下にスコープし、WordUpのデフォルトや他プラグインと競合させない。
+ * すべて .fa-wrap 配下にスコープし、WordPressのデフォルトや他プラグインと競合させない。
  */
 
 .fa-wrap {
@@ -19,6 +19,7 @@
     padding: 16px 18px;
     margin: 0 0 16px;
     box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+    box-sizing: border-box;
 }
 
 .fa-card__title {
@@ -75,21 +76,26 @@
 
 .fa-field label {
     display: inline-block;
-    min-width: 8em;
     font-weight: 600;
 }
 
 /* メッセージ */
 .fa-msg {
     margin: 10px 0;
+    padding: 8px 12px;
+    border-radius: 4px;
 }
 
 .fa-msg.is-error {
     color: #b32d2e;
+    background: #fcf0f1;
+    border: 1px solid #f0c3c5;
 }
 
 .fa-msg.is-success {
     color: #1a7f37;
+    background: #edfaef;
+    border: 1px solid #b7e3c0;
 }
 
 /* 小さめの補助ボタン */
@@ -97,4 +103,340 @@
     padding: 2px 10px;
     height: auto;
     line-height: 1.8;
+}
+
+/* =====================================================
+   航路マスタ管理
+   ===================================================== */
+
+.fa-routes__layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.fa-routes__form {
+    flex: 0 0 320px;
+    max-width: 320px;
+}
+
+.fa-routes__list {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* フォーム内の入力欄はカラム幅にフィットさせる
+   （WordPressの .regular-text は固定幅ではみ出すため上書き） */
+.fa-routes__form .regular-text,
+.fa-routes__form input[type="text"],
+.fa-routes__form input[type="number"],
+.fa-routes__form input[type="search"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+/* 表示順だけは短くてよい */
+.fa-routes__form .small-text {
+    width: 100px;
+    max-width: 100px;
+}
+
+.fa-routes__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.fa-routes__toolbar #fa-route-search {
+    flex: 1 1 auto;
+}
+
+.fa-routes__inactive {
+    white-space: nowrap;
+}
+
+.fa-req {
+    color: #b32d2e;
+    margin-left: 2px;
+}
+
+/* 操作ボタンを詰めて表示 */
+.fa-routes .fa-table td:last-child {
+    white-space: nowrap;
+}
+
+/* 狭い画面では縦積み */
+@media screen and (max-width: 1100px) {
+    .fa-routes__layout {
+        flex-direction: column;
+    }
+
+    .fa-routes__form {
+        flex-basis: auto;
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   車番マスタ管理（航路マスタと同じ2カラム構成）
+   ===================================================== */
+
+.fa-vehicles__layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.fa-vehicles__form {
+    flex: 0 0 320px;
+    max-width: 320px;
+}
+
+.fa-vehicles__list {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fa-vehicles__form .regular-text,
+.fa-vehicles__form input[type="text"],
+.fa-vehicles__form input[type="search"],
+.fa-vehicles__form select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+.fa-vehicles__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.fa-vehicles__toolbar #fa-vehicle-search {
+    flex: 1 1 auto;
+}
+
+.fa-vehicles .fa-table td:last-child {
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 1100px) {
+    .fa-vehicles__layout {
+        flex-direction: column;
+    }
+
+    .fa-vehicles__form {
+        flex-basis: auto;
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   フェリー手当入力
+   ===================================================== */
+
+.fa-entry-table th,
+.fa-entry-table td {
+    padding: 6px 8px;
+}
+
+/* セル内の入力欄はセル幅にフィット */
+.fa-entry-table input[type="text"],
+.fa-entry-table input[type="date"] {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* 自動反映（読み取り専用）欄はグレー背景 */
+.fa-entry-table input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+/* 手当欄は右寄せ */
+.fa-entry-table .fa-e-allow {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* マスタに無い入力（航路番号・車番）の警告表示 */
+.fa-entry-table input.is-invalid {
+    border-color: #d63638;
+    background: #fcf0f1;
+}
+
+/* 合計行 */
+.fa-entry-table tfoot th {
+    background: #eef2f6;
+    color: #1e3a5f;
+    font-size: 14px;
+}
+
+/* 重複警告テキスト */
+.fa-warn {
+    display: inline-block;
+    margin-top: 6px;
+    color: #8a6d00;
+}
+
+/* メッセージ内の改行を活かす */
+#fa-entry-msg {
+    line-height: 1.7;
+}
+
+/* =====================================================
+   月次サマリ / 実績一覧
+   ===================================================== */
+
+.fa-summary__toolbar,
+.fa-records__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.fa-summary__toolbar select,
+.fa-records__toolbar select {
+    min-width: 6em;
+}
+
+.fa-summary-table tfoot th,
+.fa-records-table tfoot th {
+    background: #eef2f6;
+    color: #1e3a5f;
+    font-size: 14px;
+}
+
+/* 実績編集フォーム */
+.fa-records__editcard {
+    border-left: 4px solid #1e3a5f;
+}
+
+.fa-records__editgrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.fa-records__editgrid .fa-field {
+    flex: 0 0 auto;
+}
+
+.fa-records__editgrid input[type="text"],
+.fa-records__editgrid input[type="date"] {
+    box-sizing: border-box;
+}
+
+.fa-records__editgrid input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+.fa-records__editgrid .is-invalid {
+    border-color: #d63638;
+    background: #fcf0f1;
+}
+
+.fa-records-table td:last-child {
+    white-space: nowrap;
+}
+
+
+/* =====================================================
+   車番クイック登録モーダル（入力画面・実績一覧で共用）
+   ===================================================== */
+
+.fa-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100100;
+    /* WP管理バー(99999)より前面 */
+}
+
+.fa-modal {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+}
+
+.fa-modal__header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.fa-modal__body {
+    padding: 16px;
+}
+
+.fa-modal__body .fa-field {
+    margin-bottom: 14px;
+}
+
+.fa-modal__body .fa-field>label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.fa-modal__body input[type="text"],
+.fa-modal__body select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.fa-modal__body input[readonly] {
+    background: #f3f4f5;
+    color: #333;
+    border-color: #e2e4e7;
+}
+
+.fa-modal__msg {
+    display: none;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border-left: 4px solid #d63638;
+    background: #fcf0f1;
+    color: #8a1f21;
+}
+
+.fa-modal__footer {
+    padding: 12px 16px;
+    background: #f6f7f7;
+    border-top: 1px solid #e2e4e7;
+    text-align: right;
+}
+
+.fa-modal__footer .button {
+    margin-left: 6px;
+}
+
+/* 未登録車番セルの「＋マスタ登録」ボタン */
+.fa-btn-regvehicle {
+    display: block;
+    margin-top: 4px;
+    padding: 0 6px;
+    height: 24px;
+    line-height: 22px;
+    font-size: 11px;
 }

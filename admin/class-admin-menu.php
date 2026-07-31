@@ -20,6 +20,7 @@ class FA_Admin_Menu {
     private $pages = array(
         'ferry-allowance',
         'ferry-allowance-summary',
+        'ferry-allowance-records',
         'ferry-allowance-routes',
         'ferry-allowance-vehicles',
     );
@@ -54,6 +55,11 @@ class FA_Admin_Menu {
             'ferry-allowance', '月次サマリ', '月次サマリ',
             'manage_options', 'ferry-allowance-summary',
             array( $this, 'render_summary' )
+        );
+        add_submenu_page(
+            'ferry-allowance', '実績一覧・編集', '実績一覧・編集',
+            'manage_options', 'ferry-allowance-records',
+            array( $this, 'render_records' )
         );
         add_submenu_page(
             'ferry-allowance', '航路マスタ管理', '航路マスタ管理',
@@ -102,6 +108,8 @@ class FA_Admin_Menu {
                 'nonce'   => array(
                     'vehicle' => wp_create_nonce( FA_Vehicle::NONCE_ACTION ),
                     'route'   => wp_create_nonce( FA_Route::NONCE_ACTION ),
+                    'record'  => class_exists( 'FA_Record' ) ? wp_create_nonce( FA_Record::NONCE_ACTION ) : '',
+                    'summary' => class_exists( 'FA_Summary' ) ? wp_create_nonce( FA_Summary::NONCE_ACTION ) : '',
                 ),
                 // 入力フォーム（A案サジェスト／自動反映）用マスタ
                 'routes'    => FA_Route::get_map_for_js(),
@@ -145,9 +153,18 @@ class FA_Admin_Menu {
         add_action( 'wp_ajax_fa_route_toggle',   array( 'FA_Route', 'ajax_toggle' ) );
         add_action( 'wp_ajax_fa_route_delete',   array( 'FA_Route', 'ajax_delete' ) );
 
-        // 入力・サマリのAJAXは、それぞれのクラス作成時にここへ追加する。
-        // if ( class_exists( 'FA_Record' ) ) { ... }
-        // if ( class_exists( 'FA_Summary' ) ) { ... }
+        // 利用実績（フェリー手当入力・実績一覧）
+        if ( class_exists( 'FA_Record' ) ) {
+            add_action( 'wp_ajax_fa_record_save',     array( 'FA_Record', 'ajax_save' ) );
+            add_action( 'wp_ajax_fa_record_get_list', array( 'FA_Record', 'ajax_get_list' ) );
+            add_action( 'wp_ajax_fa_record_update',   array( 'FA_Record', 'ajax_update' ) );
+            add_action( 'wp_ajax_fa_record_delete',   array( 'FA_Record', 'ajax_delete' ) );
+        }
+
+        // 月次サマリ
+        if ( class_exists( 'FA_Summary' ) ) {
+            add_action( 'wp_ajax_fa_summary_get', array( 'FA_Summary', 'ajax_get' ) );
+        }
     }
 
     // =====================================================
@@ -161,6 +178,10 @@ class FA_Admin_Menu {
 
     public function render_summary() {
         $this->render_view( 'summary.php', '月次サマリ' );
+    }
+
+    public function render_records() {
+        $this->render_view( 'records.php', '実績一覧・編集' );
     }
 
     public function render_routes() {
