@@ -8,8 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * フェリー利用実績（ferry_records）の保存・取得・削除・AJAX を担当する。
  *
  * 保存時の方針
- *  - 車番 → 車番マスタ → 従業員コードを解決し、氏名とともにスナップショット保存
- *  - 航路番号 → 航路マスタ → 航路名・手当額をスナップショット保存
+ *  - 車番 → vehicle-manager（車両管理ツール）に実在するかを確認（一連指定番号）
+ *  - 乗車名 → 入力補完で選択された社員コードを社員一覧に実在するか確認し、氏名とともにスナップショット保存
+ *  - 航路番号 → 航路マスタ → 航路名・フェリー会社・手当額をスナップショット保存
  *  - 同一社員＋同一日＋同一航路の完全重複は「警告のみ」で登録する（要件どおり）
  */
 class FA_Record {
@@ -43,10 +44,11 @@ class FA_Record {
             $use_date     = isset( $row['use_date'] )     ? trim( (string) $row['use_date'] ) : '';
             $route_no     = isset( $row['route_no'] )     ? (int) $row['route_no'] : 0;
             $vehicle_code = isset( $row['vehicle_code'] ) ? trim( (string) $row['vehicle_code'] ) : '';
+            $emp_code     = isset( $row['employee_code'] ) ? trim( (string) $row['employee_code'] ) : '';
             $note         = isset( $row['note'] )         ? sanitize_text_field( (string) $row['note'] ) : '';
 
             if ( '' === $use_date || ! self::valid_date( $use_date ) ) {
-                $errors[] = $line . '行目：日付が正しくありません（YYYY-MM-DD）。';
+                $errors[] = $line . '行目：乗車月日が正しくありません（YYYY-MM-DD）。';
                 continue;
             }
             if ( $route_no <= 0 ) {
@@ -62,13 +64,20 @@ class FA_Record {
                 $errors[] = $line . '行目：車番を入力してください。';
                 continue;
             }
-            $veh = FA_Vehicle::get_by_code( $vehicle_code );
-            if ( ! $veh ) {
-                $errors[] = $line . '行目：車番 ' . $vehicle_code . ' は車番マスタに登録されていません。';
+            if ( ! FA_Vehicle_Bridge::exists( $vehicle_code ) ) {
+                $errors[] = $line . '行目：車番 ' . $vehicle_code . ' は車両管理ツールに登録されていません。車両管理画面から登録してください。';
+                continue;
+            }
+            if ( '' === $emp_code ) {
+                $errors[] = $line . '行目：乗車名を入力してください。';
+                continue;
+            }
+            $emp = FA_Employee_Bridge::get_by_code( $emp_code );
+            if ( ! $emp ) {
+                $errors[] = $line . '行目：乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。社員情報管理画面から登録してください。';
                 continue;
             }
 
-            $emp_code = $veh->employee_code;
             $emp_name = FA_Employee_Bridge::resolve_name( $emp_code, '' );
 
             $prepared[] = array(
@@ -109,6 +118,8 @@ class FA_Record {
                     . '：同じ実績が既にあります（重複登録しました）。';
             }
 
+            $company_id = (int) $p['route']->company_id;
+
             $wpdb->insert(
                 $table,
                 array(
@@ -119,12 +130,14 @@ class FA_Record {
                     'route_id'      => (int) $p['route']->id,
                     'route_no'      => (int) $p['route']->route_no,
                     'route_name'    => $p['route']->route_name,
+                    'company_id'    => $company_id > 0 ? $company_id : null,
+                    'company_name'  => $p['route']->company_name,
                     'allowance'     => (int) $p['route']->allowance,
                     'note'          => $p['note'],
                     'created_at'    => $now,
                     'updated_at'    => $now,
                 ),
-                array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s' )
+                array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s', '%s' )
             );
             $inserted++;
         }
@@ -221,10 +234,11 @@ class FA_Record {
         $use_date     = isset( $data['use_date'] )     ? trim( (string) $data['use_date'] ) : '';
         $route_no     = isset( $data['route_no'] )     ? (int) $data['route_no'] : 0;
         $vehicle_code = isset( $data['vehicle_code'] ) ? trim( (string) $data['vehicle_code'] ) : '';
+        $emp_code     = isset( $data['employee_code'] ) ? trim( (string) $data['employee_code'] ) : '';
         $note         = isset( $data['note'] )         ? sanitize_text_field( (string) $data['note'] ) : '';
 
         if ( '' === $use_date || ! self::valid_date( $use_date ) ) {
-            return array( 'success' => false, 'message' => '日付が正しくありません（YYYY-MM-DD）。' );
+            return array( 'success' => false, 'message' => '乗車月日が正しくありません（YYYY-MM-DD）。' );
         }
         if ( $route_no <= 0 ) {
             return array( 'success' => false, 'message' => '航路番号を入力してください。' );
@@ -236,12 +250,17 @@ class FA_Record {
         if ( '' === $vehicle_code ) {
             return array( 'success' => false, 'message' => '車番を入力してください。' );
         }
-        $veh = FA_Vehicle::get_by_code( $vehicle_code );
-        if ( ! $veh ) {
-            return array( 'success' => false, 'message' => '車番 ' . $vehicle_code . ' は車番マスタに登録されていません。' );
+        if ( ! FA_Vehicle_Bridge::exists( $vehicle_code ) ) {
+            return array( 'success' => false, 'message' => '車番 ' . $vehicle_code . ' は車両管理ツールに登録されていません。車両管理画面から登録してください。' );
+        }
+        if ( '' === $emp_code ) {
+            return array( 'success' => false, 'message' => '乗車名を入力してください。' );
+        }
+        $emp = FA_Employee_Bridge::get_by_code( $emp_code );
+        if ( ! $emp ) {
+            return array( 'success' => false, 'message' => '乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。社員情報管理画面から登録してください。' );
         }
 
-        $emp_code = $veh->employee_code;
         $emp_name = FA_Employee_Bridge::resolve_name( $emp_code, '' );
 
         $table = FA_DB_Install::table_records();
@@ -257,6 +276,8 @@ class FA_Record {
             )
         );
 
+        $company_id = (int) $route->company_id;
+
         $wpdb->update(
             $table,
             array(
@@ -267,12 +288,14 @@ class FA_Record {
                 'route_id'      => (int) $route->id,
                 'route_no'      => (int) $route->route_no,
                 'route_name'    => $route->route_name,
+                'company_id'    => $company_id > 0 ? $company_id : null,
+                'company_name'  => $route->company_name,
                 'allowance'     => (int) $route->allowance,
                 'note'          => $note,
                 'updated_at'    => current_time( 'mysql' ),
             ),
             array( 'id' => $id ),
-            array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s' ),
+            array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s' ),
             array( '%d' )
         );
 
@@ -345,10 +368,11 @@ class FA_Record {
         self::verify();
         $id   = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
         $data = array(
-            'use_date'     => isset( $_POST['use_date'] )     ? wp_unslash( $_POST['use_date'] )     : '',
-            'route_no'     => isset( $_POST['route_no'] )     ? (int) $_POST['route_no'] : 0,
-            'vehicle_code' => isset( $_POST['vehicle_code'] ) ? wp_unslash( $_POST['vehicle_code'] ) : '',
-            'note'         => isset( $_POST['note'] )         ? wp_unslash( $_POST['note'] )         : '',
+            'use_date'      => isset( $_POST['use_date'] )      ? wp_unslash( $_POST['use_date'] )      : '',
+            'route_no'      => isset( $_POST['route_no'] )      ? (int) $_POST['route_no'] : 0,
+            'vehicle_code'  => isset( $_POST['vehicle_code'] )  ? wp_unslash( $_POST['vehicle_code'] )  : '',
+            'employee_code' => isset( $_POST['employee_code'] ) ? wp_unslash( $_POST['employee_code'] ) : '',
+            'note'          => isset( $_POST['note'] )          ? wp_unslash( $_POST['note'] )          : '',
         );
         $result = self::update( $id, $data );
         if ( ! empty( $result['success'] ) ) {

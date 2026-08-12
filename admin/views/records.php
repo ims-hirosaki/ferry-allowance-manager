@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * 実績一覧・編集・削除画面
  * 年月で絞り込み、登録済みのフェリー利用実績を一覧・編集・削除する。
- * 編集は上部フォームで行い、航路・車番は入力画面と同じく自動反映する。
+ * 編集は上部フォームで行い、航路・車番・乗車名は入力画面と同じ入力補完を用いる。
  */
 $fa_now   = current_time( 'timestamp' );
 $fa_year  = (int) gmdate( 'Y', $fa_now );
@@ -22,12 +22,16 @@ $fa_month = (int) gmdate( 'n', $fa_now );
         <input type="hidden" id="fa-records-edit-id" value="0">
         <div class="fa-records__editgrid">
             <div class="fa-field">
-                <label>月日<span class="fa-req">*</span></label><br>
+                <label>乗車月日<span class="fa-req">*</span></label><br>
                 <input type="date" id="fa-records-edit-date">
             </div>
             <div class="fa-field">
-                <label>航路番号（番号・航路名で検索）<span class="fa-req">*</span></label><br>
+                <label>航路名検索<span class="fa-req">*</span></label><br>
                 <input type="text" id="fa-records-edit-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名">
+            </div>
+            <div class="fa-field">
+                <label>フェリー会社</label><br>
+                <input type="text" id="fa-records-edit-company" readonly tabindex="-1">
             </div>
             <div class="fa-field">
                 <label>航路</label><br>
@@ -38,8 +42,8 @@ $fa_month = (int) gmdate( 'n', $fa_now );
                 <input type="text" id="fa-records-edit-vehicle" list="fa-vehicle-datalist" placeholder="車番">
             </div>
             <div class="fa-field">
-                <label>乗車名</label><br>
-                <input type="text" id="fa-records-edit-empname" readonly tabindex="-1">
+                <label>乗車名<span class="fa-req">*</span></label><br>
+                <input type="text" id="fa-records-edit-empname" list="fa-employee-datalist" placeholder="氏名">
             </div>
             <div class="fa-field">
                 <label>フェリー手当</label><br>
@@ -72,9 +76,10 @@ $fa_month = (int) gmdate( 'n', $fa_now );
         <table class="fa-table fa-records-table">
             <thead>
                 <tr>
-                    <th style="width:8em;">月日</th>
+                    <th style="width:8em;">乗車月日</th>
                     <th style="width:4em;">航路番号</th>
                     <th>航路</th>
+                    <th style="width:10em;">フェリー会社</th>
                     <th style="width:6em;">車番</th>
                     <th style="width:10em;">乗車名</th>
                     <th style="width:8em;">手当</th>
@@ -82,11 +87,11 @@ $fa_month = (int) gmdate( 'n', $fa_now );
                 </tr>
             </thead>
             <tbody id="fa-records-tbody">
-                <tr><td colspan="7">「表示」を押してください。</td></tr>
+                <tr><td colspan="8">「表示」を押してください。</td></tr>
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="5" style="text-align:right;">合計</th>
+                    <th colspan="6" style="text-align:right;">合計</th>
                     <th class="fa-num" id="fa-records-total">0</th>
                     <th></th>
                 </tr>
@@ -97,4 +102,5 @@ $fa_month = (int) gmdate( 'n', $fa_now );
     <!-- サジェスト用データリスト（admin.jsで流し込む） -->
     <datalist id="fa-route-datalist"></datalist>
     <datalist id="fa-vehicle-datalist"></datalist>
+    <datalist id="fa-employee-datalist"></datalist>
 </div>
