@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ===== 定数定義 =====
-define( 'FA_VERSION',     '1.0.0' );
+define( 'FA_VERSION',     '1.1.0' );
 define( 'FA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'FA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'FA_PLUGIN_FILE', __FILE__ );
@@ -22,7 +22,8 @@ define( 'FA_PLUGIN_FILE', __FILE__ );
 // ===== 依存ファイルの読み込み =====
 require_once FA_PLUGIN_DIR . 'includes/class-db-install.php';
 require_once FA_PLUGIN_DIR . 'includes/class-employee-bridge.php';
-require_once FA_PLUGIN_DIR . 'includes/class-vehicle.php';
+require_once FA_PLUGIN_DIR . 'includes/class-vehicle-bridge.php';
+require_once FA_PLUGIN_DIR . 'includes/class-company.php';
 require_once FA_PLUGIN_DIR . 'includes/class-route.php';
 require_once FA_PLUGIN_DIR . 'includes/class-record.php';
 require_once FA_PLUGIN_DIR . 'admin/class-admin-menu.php';   // 追加
@@ -32,13 +33,21 @@ register_activation_hook( __FILE__, 'fa_activate' );
 
 /**
  * 有効化処理
- * employee-manager が有効でない場合は自身を無効化して中断する
+ * employee-manager・vehicle-manager が有効でない場合は自身を無効化して中断する
  */
 function fa_activate() {
     if ( ! function_exists( 'emp_get_active_employees' ) ) {
         deactivate_plugins( plugin_basename( __FILE__ ) );
         wp_die(
             '<p><strong>フェリー手当管理</strong> を有効化するには、先に <strong>employee-manager（社員情報管理システム）</strong> プラグインを有効化してください。</p>',
+            'プラグインの有効化エラー',
+            array( 'back_link' => true )
+        );
+    }
+    if ( ! function_exists( 'vm_get_vehicle_numbers' ) ) {
+        deactivate_plugins( plugin_basename( __FILE__ ) );
+        wp_die(
+            '<p><strong>フェリー手当管理</strong> を有効化するには、先に <strong>vehicle-manager（車両管理）</strong> プラグインを有効化してください。</p>',
             'プラグインの有効化エラー',
             array( 'back_link' => true )
         );
@@ -52,7 +61,7 @@ add_action( 'plugins_loaded', 'fa_init' );
 
 function fa_init() {
     // 依存プラグインが無効化された場合は通知のみ出して機能を止める
-    if ( ! function_exists( 'emp_get_active_employees' ) ) {
+    if ( ! function_exists( 'emp_get_active_employees' ) || ! function_exists( 'vm_get_vehicle_numbers' ) ) {
         add_action( 'admin_notices', 'fa_missing_dependency_notice' );
         return;
     }
@@ -71,6 +80,7 @@ function fa_init() {
 function fa_missing_dependency_notice() {
     echo '<div class="notice notice-error"><p>'
         . '<strong>フェリー手当管理:</strong> '
-        . '<strong>employee-manager（社員情報管理システム）</strong> プラグインが必要です。先に有効化してください。'
+        . '<strong>employee-manager（社員情報管理システム）</strong> と '
+        . '<strong>vehicle-manager（車両管理）</strong> の両プラグインが必要です。先に有効化してください。'
         . '</p></div>';
 }

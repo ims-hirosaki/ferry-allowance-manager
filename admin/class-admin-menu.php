@@ -9,10 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * メニュー構成
  *   フェリー手当（トップ = フェリー手当入力）
- *   ├── フェリー手当入力   ferry-allowance
- *   ├── 月次サマリ         ferry-allowance-summary
- *   ├── 航路マスタ管理     ferry-allowance-routes
- *   └── 車番マスタ管理     ferry-allowance-vehicles
+ *   ├── フェリー手当入力     ferry-allowance
+ *   ├── 月次サマリ           ferry-allowance-summary
+ *   ├── 実績一覧・編集       ferry-allowance-records
+ *   ├── 航路マスタ管理       ferry-allowance-routes
+ *   └── フェリー会社マスタ   ferry-allowance-companies
  */
 class FA_Admin_Menu {
 
@@ -22,7 +23,7 @@ class FA_Admin_Menu {
         'ferry-allowance-summary',
         'ferry-allowance-records',
         'ferry-allowance-routes',
-        'ferry-allowance-vehicles',
+        'ferry-allowance-companies',
     );
 
     public function __construct() {
@@ -67,9 +68,9 @@ class FA_Admin_Menu {
             array( $this, 'render_routes' )
         );
         add_submenu_page(
-            'ferry-allowance', '車番マスタ管理', '車番マスタ管理',
-            'manage_options', 'ferry-allowance-vehicles',
-            array( $this, 'render_vehicles' )
+            'ferry-allowance', 'フェリー会社マスタ', 'フェリー会社マスタ',
+            'manage_options', 'ferry-allowance-companies',
+            array( $this, 'render_companies' )
         );
     }
 
@@ -106,22 +107,28 @@ class FA_Admin_Menu {
                 'ajaxurl' => admin_url( 'admin-ajax.php' ),
                 'page'    => $page,
                 'nonce'   => array(
-                    'vehicle' => wp_create_nonce( FA_Vehicle::NONCE_ACTION ),
+                    'company' => wp_create_nonce( FA_Company::NONCE_ACTION ),
                     'route'   => wp_create_nonce( FA_Route::NONCE_ACTION ),
                     'record'  => class_exists( 'FA_Record' ) ? wp_create_nonce( FA_Record::NONCE_ACTION ) : '',
                     'summary' => class_exists( 'FA_Summary' ) ? wp_create_nonce( FA_Summary::NONCE_ACTION ) : '',
                 ),
                 // 入力フォーム（A案サジェスト／自動反映）用マスタ
-                'routes'    => FA_Route::get_map_for_js(),
-                'vehicles'  => FA_Vehicle::get_map_for_js(),
-                // 車番マスタ画面の従業員セレクト用（在籍社員）
-                'employees' => $this->employees_for_select(),
+                'routes'         => FA_Route::get_map_for_js(),
+                // 車番の入力補完用（vehicle-manager の一連指定番号一覧）
+                'vehicleNumbers' => FA_Vehicle_Bridge::get_vehicle_numbers(),
+                // 乗車名の入力補完用（在籍社員）
+                'employees'      => $this->employees_for_select(),
+                // 未登録時の誘導リンク
+                'links'          => array(
+                    'vehicle'  => admin_url( 'admin.php?page=vm-vehicle-form' ),
+                    'employee' => admin_url( 'admin.php?page=employee-manager-new' ),
+                ),
             )
         );
     }
 
     /**
-     * 車番マスタ画面の従業員セレクト用データ
+     * 乗車名入力補完用の従業員データ
      * array( array( code, name, crew_code ), ... )
      */
     private function employees_for_select() {
@@ -142,10 +149,11 @@ class FA_Admin_Menu {
     // =====================================================
 
     private function register_ajax_hooks() {
-        // 車番マスタ
-        add_action( 'wp_ajax_fa_vehicle_get_list', array( 'FA_Vehicle', 'ajax_get_list' ) );
-        add_action( 'wp_ajax_fa_vehicle_save',     array( 'FA_Vehicle', 'ajax_save' ) );
-        add_action( 'wp_ajax_fa_vehicle_delete',   array( 'FA_Vehicle', 'ajax_delete' ) );
+        // フェリー会社マスタ
+        add_action( 'wp_ajax_fa_company_get_list', array( 'FA_Company', 'ajax_get_list' ) );
+        add_action( 'wp_ajax_fa_company_save',     array( 'FA_Company', 'ajax_save' ) );
+        add_action( 'wp_ajax_fa_company_toggle',   array( 'FA_Company', 'ajax_toggle' ) );
+        add_action( 'wp_ajax_fa_company_delete',   array( 'FA_Company', 'ajax_delete' ) );
 
         // 航路マスタ
         add_action( 'wp_ajax_fa_route_get_list', array( 'FA_Route', 'ajax_get_list' ) );
@@ -188,8 +196,8 @@ class FA_Admin_Menu {
         $this->render_view( 'routes.php', '航路マスタ管理' );
     }
 
-    public function render_vehicles() {
-        $this->render_view( 'vehicles.php', '車番マスタ管理' );
+    public function render_companies() {
+        $this->render_view( 'companies.php', 'フェリー会社マスタ' );
     }
 
     /**

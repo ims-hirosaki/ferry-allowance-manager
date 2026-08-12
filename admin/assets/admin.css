@@ -182,56 +182,65 @@
 }
 
 /* =====================================================
-   車番マスタ管理（航路マスタと同じ2カラム構成）
+   フェリー会社マスタ（航路マスタと同じ2カラム構成）
    ===================================================== */
 
-.fa-vehicles__layout {
+.fa-companies__layout {
     display: flex;
     gap: 20px;
     align-items: flex-start;
 }
 
-.fa-vehicles__form {
+.fa-companies__form {
     flex: 0 0 320px;
     max-width: 320px;
 }
 
-.fa-vehicles__list {
+.fa-companies__list {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.fa-vehicles__form .regular-text,
-.fa-vehicles__form input[type="text"],
-.fa-vehicles__form input[type="search"],
-.fa-vehicles__form select {
+.fa-companies__form .regular-text,
+.fa-companies__form input[type="text"],
+.fa-companies__form input[type="search"],
+.fa-companies__form select {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     margin-top: 4px;
 }
 
-.fa-vehicles__toolbar {
+.fa-companies__form .small-text {
+    width: 100px;
+    max-width: 100px;
+}
+
+.fa-companies__toolbar {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-bottom: 12px;
 }
 
-.fa-vehicles__toolbar #fa-vehicle-search {
+.fa-companies__toolbar #fa-company-search {
     flex: 1 1 auto;
 }
 
-.fa-vehicles .fa-table td:last-child {
+.fa-companies__inactive {
+    white-space: nowrap;
+}
+
+.fa-companies .fa-table td:last-child {
     white-space: nowrap;
 }
 
 @media screen and (max-width: 1100px) {
-    .fa-vehicles__layout {
+    .fa-companies__layout {
         flex-direction: column;
     }
 
-    .fa-vehicles__form {
+    .fa-companies__form {
         flex-basis: auto;
         max-width: none;
         width: 100%;
@@ -354,89 +363,13 @@
 
 
 /* =====================================================
-   車番クイック登録モーダル（入力画面・実績一覧で共用）
+   未登録の車番・乗車名の登録誘導リンク
+   （入力画面・実績一覧の編集フォームで共用）
    ===================================================== */
 
-.fa-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100100;
-    /* WP管理バー(99999)より前面 */
-}
-
-.fa-modal {
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
-    width: 420px;
-    max-width: calc(100vw - 40px);
-    overflow: hidden;
-}
-
-.fa-modal__header {
-    background: #1e3a5f;
-    color: #fff;
-    padding: 12px 16px;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.fa-modal__body {
-    padding: 16px;
-}
-
-.fa-modal__body .fa-field {
-    margin-bottom: 14px;
-}
-
-.fa-modal__body .fa-field>label {
-    display: block;
-    margin-bottom: 4px;
-    font-weight: 600;
-}
-
-.fa-modal__body input[type="text"],
-.fa-modal__body select {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.fa-modal__body input[readonly] {
-    background: #f3f4f5;
-    color: #333;
-    border-color: #e2e4e7;
-}
-
-.fa-modal__msg {
-    display: none;
-    margin: 0 0 12px;
-    padding: 8px 10px;
-    border-left: 4px solid #d63638;
-    background: #fcf0f1;
-    color: #8a1f21;
-}
-
-.fa-modal__footer {
-    padding: 12px 16px;
-    background: #f6f7f7;
-    border-top: 1px solid #e2e4e7;
-    text-align: right;
-}
-
-.fa-modal__footer .button {
-    margin-left: 6px;
-}
-
-/* 未登録車番セルの「＋マスタ登録」ボタン */
-.fa-btn-regvehicle {
+.fa-reg-link {
     display: block;
     margin-top: 4px;
-    padding: 0 6px;
-    height: 24px;
-    line-height: 22px;
     font-size: 11px;
+    white-space: nowrap;
 }

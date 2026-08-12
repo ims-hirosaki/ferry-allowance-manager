@@ -7,7 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * データ取得・保存は admin.js から AJAX（fa_route_*）で行う。
  * 初期一覧は faData.routes（有効のみ）ではなく、画面表示時に
  * AJAX で「無効含む/含まない」を切り替えて取得する。
+ * フェリー会社はフェリー会社マスタから選択する（未設定可）。
  */
+$fa_companies = FA_Company::get_list();
 ?>
 <div class="wrap fa-wrap fa-routes">
     <h1>航路マスタ管理</h1>
@@ -34,7 +36,17 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </div>
 
                 <div class="fa-field">
-                    <label for="fa-route-allowance">フェリー手当（円）<span class="fa-req">*</span></label><br>
+                    <label for="fa-route-company">フェリー会社</label><br>
+                    <select id="fa-route-company" class="regular-text">
+                        <option value="">— 未設定 —</option>
+                        <?php foreach ( $fa_companies as $company ) : ?>
+                            <option value="<?php echo esc_attr( $company->id ); ?>"><?php echo esc_html( $company->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="fa-field">
+                    <label for="fa-route-allowance">フェリー手当（円・0円可）<span class="fa-req">*</span></label><br>
                     <input type="number" id="fa-route-allowance" class="regular-text" min="0" step="100" placeholder="例：2000">
                 </div>
 
@@ -69,13 +81,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <tr>
                             <th style="width:5em;">番号</th>
                             <th>航路名</th>
+                            <th style="width:10em;">フェリー会社</th>
                             <th style="width:8em;">手当</th>
                             <th style="width:5em;">状態</th>
                             <th style="width:13em;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="fa-route-tbody">
-                        <tr><td colspan="5">読み込み中…</td></tr>
+                        <tr><td colspan="6">読み込み中…</td></tr>
                     </tbody>
                 </table>
             </div>
