@@ -40,7 +40,7 @@ class FA_Admin_Menu {
         add_menu_page(
             'フェリー手当管理',
             'フェリー手当',
-            'manage_options',
+            'access_custom_plugins',
             'ferry-allowance',
             array( $this, 'render_entry' ),
             'dashicons-sos',   // 浮き輪＝船の連想（dashiconsに船・錨が無いため）
@@ -49,27 +49,27 @@ class FA_Admin_Menu {
 
         add_submenu_page(
             'ferry-allowance', 'フェリー手当入力', 'フェリー手当入力',
-            'manage_options', 'ferry-allowance',
+            'access_custom_plugins', 'ferry-allowance',
             array( $this, 'render_entry' )
         );
         add_submenu_page(
             'ferry-allowance', '月次サマリ', '月次サマリ',
-            'manage_options', 'ferry-allowance-summary',
+            'access_custom_plugins', 'ferry-allowance-summary',
             array( $this, 'render_summary' )
         );
         add_submenu_page(
             'ferry-allowance', '実績一覧・編集', '実績一覧・編集',
-            'manage_options', 'ferry-allowance-records',
+            'access_custom_plugins', 'ferry-allowance-records',
             array( $this, 'render_records' )
         );
         add_submenu_page(
             'ferry-allowance', '航路マスタ管理', '航路マスタ管理',
-            'manage_options', 'ferry-allowance-routes',
+            'access_custom_plugins', 'ferry-allowance-routes',
             array( $this, 'render_routes' )
         );
         add_submenu_page(
             'ferry-allowance', 'フェリー会社マスタ', 'フェリー会社マスタ',
-            'manage_options', 'ferry-allowance-companies',
+            'access_custom_plugins', 'ferry-allowance-companies',
             array( $this, 'render_companies' )
         );
     }
@@ -204,6 +204,9 @@ class FA_Admin_Menu {
      * ビューを読み込む。未作成なら準備中プレースホルダを表示。
      */
     private function render_view( $file, $title ) {
+        if ( ! current_user_can( 'access_custom_plugins' ) ) {
+            wp_die( '権限がありません。', '', array( 'response' => 403 ) );
+        }
         $path = FA_PLUGIN_DIR . 'admin/views/' . $file;
         if ( file_exists( $path ) ) {
             include $path;

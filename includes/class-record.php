@@ -329,9 +329,9 @@ class FA_Record {
     //  AJAX
     // =====================================================
 
-    private static function verify() {
+    private static function verify( $capability = 'edit_custom_plugins' ) {
         check_ajax_referer( self::NONCE_ACTION, 'nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( $capability ) ) {
             wp_send_json_error( array( 'message' => '権限がありません。' ) );
         }
     }
@@ -354,7 +354,7 @@ class FA_Record {
     }
 
     public static function ajax_get_list() {
-        self::verify();
+        self::verify( 'access_custom_plugins' );
         $rows = self::get_records( array(
             'year'          => isset( $_POST['year'] )  ? (int) $_POST['year']  : 0,
             'month'         => isset( $_POST['month'] ) ? (int) $_POST['month'] : 0,
