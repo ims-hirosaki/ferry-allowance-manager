@@ -12,7 +12,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-db-install.php';
 
 // 定数が未定義の場合に備える（uninstall.php は通常フローとは別に読み込まれるため）
 if ( ! defined( 'FA_VERSION' ) ) {
-    define( 'FA_VERSION', '1.0.0' );
+    define( 'FA_VERSION', '1.2.0' );
 }
 
 FA_DB_Install::drop_tables();

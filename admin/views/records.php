@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * 実績一覧・編集・削除画面
  * 年月で絞り込み、登録済みのフェリー利用実績を一覧・編集・削除する。
- * 編集は上部フォームで行い、航路・車番・乗車名は入力画面と同じ入力補完を用いる。
+ * 編集は上部フォームで行い、乗車名は乗車名マスタから自動反映し、例外時のみ社員一覧から選択する。
  */
 $fa_now   = current_time( 'timestamp' );
 $fa_year  = (int) gmdate( 'Y', $fa_now );
@@ -43,7 +43,10 @@ $fa_month = (int) gmdate( 'n', $fa_now );
             </div>
             <div class="fa-field">
                 <label>乗車名<span class="fa-req">*</span></label><br>
-                <input type="text" id="fa-records-edit-empname" list="fa-employee-datalist" placeholder="氏名">
+                <span class="fa-employee-control">
+                    <input type="text" id="fa-records-edit-empname" placeholder="車番から自動表示" readonly tabindex="-1">
+                    <button type="button" class="button fa-btn-sm" id="fa-records-edit-manual">手動選択</button>
+                </span>
             </div>
             <div class="fa-field">
                 <label>フェリー手当</label><br>
@@ -102,5 +105,4 @@ $fa_month = (int) gmdate( 'n', $fa_now );
     <!-- サジェスト用データリスト（admin.jsで流し込む） -->
     <datalist id="fa-route-datalist"></datalist>
     <datalist id="fa-vehicle-datalist"></datalist>
-    <datalist id="fa-employee-datalist"></datalist>
 </div>

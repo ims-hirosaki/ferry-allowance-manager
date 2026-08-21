@@ -10,12 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * 作成テーブル
  *   {prefix}ferry_routes     航路マスタ（フェリー会社マスタへの紐づけを含む）
  *   {prefix}ferry_companies  フェリー会社マスタ
+ *   {prefix}ferry_vehicles   乗車名マスタ（車番⇄従業員）
  *   {prefix}ferry_records    フェリー利用実績
- *
- * {prefix}ferry_vehicles（旧・車番⇄従業員マスタ）は廃止した。
- * 車番は vehicle-manager（車両管理ツール）、乗車名は社員一覧から直接解決するため
- * 対応表が不要になったが、既存データ保護のため自動作成・自動削除の対象からは外し、
- * 物理テーブルは触れずに残す（アンインストール時のみ削除する）。
  */
 class FA_DB_Install {
 
@@ -37,9 +33,6 @@ class FA_DB_Install {
         return $wpdb->prefix . 'ferry_routes';
     }
 
-    /**
-     * 旧・車番⇄従業員マスタのテーブル名（アンインストール時の削除にのみ使用）
-     */
     public static function table_vehicles() {
         global $wpdb;
         return $wpdb->prefix . 'ferry_vehicles';
@@ -67,6 +60,7 @@ class FA_DB_Install {
         $charset   = $wpdb->get_charset_collate();
         $routes    = self::table_routes();
         $companies = self::table_companies();
+        $vehicles  = self::table_vehicles();
         $records   = self::table_records();
 
         $sqls = array();
@@ -107,17 +101,32 @@ class FA_DB_Install {
         ) $charset;";
 
         // -----------------------------------------------------
+        // 乗車名マスタ（車両管理の車番 ⇄ 社員情報の社員コード）
+        // -----------------------------------------------------
+        $sqls[] = "CREATE TABLE {$vehicles} (
+            id             INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+            vehicle_code   VARCHAR(20)      NOT NULL                            COMMENT '車両管理の一連指定番号',
+            employee_code  VARCHAR(20)      NOT NULL                            COMMENT '社員情報の社員コード',
+            is_active      TINYINT(1)       NOT NULL DEFAULT 1,
+            created_at     DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at     DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY uk_vehicle_code (vehicle_code),
+            KEY idx_employee (employee_code)
+        ) $charset;";
+
+        // -----------------------------------------------------
         // フェリー利用実績
         //   航路番号・航路名・手当額・フェリー会社・従業員コード・氏名・車番は
         //   登録時点の値をスナップショット保存する。
         //   （マスタ改定や担当変更が過去の給与計算に影響しないようにするため）
-        //   車番は vehicle-manager、乗車名は社員一覧の入力補完から直接指定する。
+        //   通常の乗車名は乗車名マスタから、例外時は社員一覧から指定する。
         //   氏名は表示時に emp_master からライブ取得し、取得不可時のみ
         //   employee_name（スナップショット）へ COALESCE でフォールバックする。
         // -----------------------------------------------------
         $sqls[] = "CREATE TABLE {$records} (
             id             INT UNSIGNED        NOT NULL AUTO_INCREMENT           COMMENT '内部ID（サロゲートキー）',
-            employee_code  VARCHAR(20)         NOT NULL                          COMMENT '従業員コード（乗車名入力補完から解決・スナップショット）',
+            employee_code  VARCHAR(20)         NOT NULL                          COMMENT '従業員コード（乗車名マスタまたは社員選択・スナップショット）',
             employee_name  VARCHAR(100)            NULL DEFAULT NULL             COMMENT '氏名スナップショット（表示フォールバック用）',
             vehicle_code   VARCHAR(20)         NOT NULL                          COMMENT '車番（vehicle-managerの一連指定番号・入力値スナップショット）',
             use_date       DATE                NOT NULL                          COMMENT '乗車月日',

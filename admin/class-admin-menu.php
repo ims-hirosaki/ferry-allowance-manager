@@ -13,7 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   ├── 月次サマリ           ferry-allowance-summary
  *   ├── 実績一覧・編集       ferry-allowance-records
  *   ├── 航路マスタ管理       ferry-allowance-routes
- *   └── フェリー会社マスタ   ferry-allowance-companies
+ *   ├── フェリー会社マスタ   ferry-allowance-companies
+ *   └── 乗車名マスタ         ferry-allowance-boarding-names
  */
 class FA_Admin_Menu {
 
@@ -24,6 +25,7 @@ class FA_Admin_Menu {
         'ferry-allowance-records',
         'ferry-allowance-routes',
         'ferry-allowance-companies',
+        'ferry-allowance-boarding-names',
     );
 
     public function __construct() {
@@ -72,6 +74,11 @@ class FA_Admin_Menu {
             'manage_options', 'ferry-allowance-companies',
             array( $this, 'render_companies' )
         );
+        add_submenu_page(
+            'ferry-allowance', '乗車名マスタ', '乗車名マスタ',
+            'manage_options', 'ferry-allowance-boarding-names',
+            array( $this, 'render_boarding_names' )
+        );
     }
 
     // =====================================================
@@ -111,12 +118,15 @@ class FA_Admin_Menu {
                     'route'   => wp_create_nonce( FA_Route::NONCE_ACTION ),
                     'record'  => class_exists( 'FA_Record' ) ? wp_create_nonce( FA_Record::NONCE_ACTION ) : '',
                     'summary' => class_exists( 'FA_Summary' ) ? wp_create_nonce( FA_Summary::NONCE_ACTION ) : '',
+                    'boarding' => wp_create_nonce( FA_Boarding_Name::NONCE_ACTION ),
                 ),
                 // 入力フォーム（A案サジェスト／自動反映）用マスタ
                 'routes'         => FA_Route::get_map_for_js(),
                 // 車番の入力補完用（vehicle-manager の一連指定番号一覧）
                 'vehicleNumbers' => FA_Vehicle_Bridge::get_vehicle_numbers(),
-                // 乗車名の入力補完用（在籍社員）
+                // 乗車名マスタ（車番 → 社員）
+                'vehicleEmployees' => FA_Vehicle_Bridge::get_employee_map(),
+                // 例外時の乗車名選択用（在籍社員）
                 'employees'      => $this->employees_for_select(),
                 // 未登録時の誘導リンク
                 'links'          => array(
@@ -149,6 +159,12 @@ class FA_Admin_Menu {
     // =====================================================
 
     private function register_ajax_hooks() {
+        // 乗車名マスタ
+        add_action( 'wp_ajax_fa_boarding_get_list', array( 'FA_Boarding_Name', 'ajax_get_list' ) );
+        add_action( 'wp_ajax_fa_boarding_save',     array( 'FA_Boarding_Name', 'ajax_save' ) );
+        add_action( 'wp_ajax_fa_boarding_toggle',   array( 'FA_Boarding_Name', 'ajax_toggle' ) );
+        add_action( 'wp_ajax_fa_boarding_delete',   array( 'FA_Boarding_Name', 'ajax_delete' ) );
+
         // フェリー会社マスタ
         add_action( 'wp_ajax_fa_company_get_list', array( 'FA_Company', 'ajax_get_list' ) );
         add_action( 'wp_ajax_fa_company_save',     array( 'FA_Company', 'ajax_save' ) );
@@ -198,6 +214,10 @@ class FA_Admin_Menu {
 
     public function render_companies() {
         $this->render_view( 'companies.php', 'フェリー会社マスタ' );
+    }
+
+    public function render_boarding_names() {
+        $this->render_view( 'boarding-names.php', '乗車名マスタ' );
     }
 
     /**
