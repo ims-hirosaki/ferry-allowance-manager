@@ -422,7 +422,7 @@
         function rowHtml() {
             return '' +
                 '<tr class="fa-entry-row">' +
-                '<td><input type="text" class="fa-e-date" placeholder="YYYY/MM/DD" inputmode="numeric"></td>' +
+                '<td><input type="date" class="fa-e-date"></td>' +
                 '<td><input type="text" class="fa-e-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名"></td>' +
                 '<td><input type="text" class="fa-e-company" readonly tabindex="-1"></td>' +
                 '<td><input type="text" class="fa-e-routename" readonly tabindex="-1"></td>' +
