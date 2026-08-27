@@ -11,6 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FA_Vehicle_Bridge {
 
+    /** 乗車名マスタの「車番 → 乗車社員」マップを取得する。 */
+    public static function get_employee_map() {
+        return class_exists( 'FA_Boarding_Name' ) ? FA_Boarding_Name::get_map_for_js() : array();
+    }
+
     /**
      * vehicle-manager が利用可能か
      */

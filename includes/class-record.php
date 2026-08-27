@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * 保存時の方針
  *  - 車番 → vehicle-manager（車両管理ツール）に実在するかを確認（一連指定番号）
- *  - 乗車名 → 入力補完で選択された社員コードを社員一覧に実在するか確認し、氏名とともにスナップショット保存
+ *  - 乗車名 → 通常・例外選択とも社員コードを検証し、氏名とともにスナップショット保存
  *  - 航路番号 → 航路マスタ → 航路名・フェリー会社・手当額をスナップショット保存
  *  - 同一社員＋同一日＋同一航路の完全重複は「警告のみ」で登録する（要件どおり）
  */
@@ -26,7 +26,7 @@ class FA_Record {
      * 1行でもハードエラー（必須・実在チェック違反）があれば、何も登録せず全体を差し戻す。
      * ハードエラーが無ければ全行を登録し、重複は警告として返す（登録は行う）。
      *
-     * @param array $rows  各要素: use_date, route_no, vehicle_code, note
+     * @param array $rows  各要素: use_date, route_no, vehicle_code, employee_code, note
      * @return array
      */
     public static function save_bulk( $rows ) {
@@ -74,10 +74,9 @@ class FA_Record {
             }
             $emp = FA_Employee_Bridge::get_by_code( $emp_code );
             if ( ! $emp ) {
-                $errors[] = $line . '行目：乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。社員情報管理画面から登録してください。';
+                $errors[] = $line . '行目：乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。';
                 continue;
             }
-
             $emp_name = FA_Employee_Bridge::resolve_name( $emp_code, '' );
 
             $prepared[] = array(
@@ -220,7 +219,7 @@ class FA_Record {
      * 同一社員＋同一日＋同一航路の重複は警告のみ（自分自身は除外）。
      *
      * @param int   $id
-     * @param array $data  use_date, route_no, vehicle_code, note
+     * @param array $data  use_date, route_no, vehicle_code, employee_code, note
      * @return array
      */
     public static function update( $id, $data ) {
@@ -258,9 +257,8 @@ class FA_Record {
         }
         $emp = FA_Employee_Bridge::get_by_code( $emp_code );
         if ( ! $emp ) {
-            return array( 'success' => false, 'message' => '乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。社員情報管理画面から登録してください。' );
+            return array( 'success' => false, 'message' => '乗車名（社員コード ' . $emp_code . '）が社員情報に見つかりません。' );
         }
-
         $emp_name = FA_Employee_Bridge::resolve_name( $emp_code, '' );
 
         $table = FA_DB_Install::table_records();
