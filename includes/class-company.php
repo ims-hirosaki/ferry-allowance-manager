@@ -203,15 +203,15 @@ class FA_Company {
     //  AJAX
     // =====================================================
 
-    private static function verify() {
+    private static function verify( $capability = 'edit_custom_plugins' ) {
         check_ajax_referer( self::NONCE_ACTION, 'nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( $capability ) ) {
             wp_send_json_error( array( 'message' => '権限がありません。' ) );
         }
     }
 
     public static function ajax_get_list() {
-        self::verify();
+        self::verify( 'access_custom_plugins' );
         $include_inactive = isset( $_POST['include_inactive'] ) && '1' === $_POST['include_inactive'];
         $keyword          = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
         $rows = self::get_list( array(

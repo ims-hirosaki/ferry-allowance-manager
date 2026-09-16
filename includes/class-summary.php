@@ -95,7 +95,7 @@ class FA_Summary {
 
     private static function verify() {
         check_ajax_referer( self::NONCE_ACTION, 'nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'access_custom_plugins' ) ) {
             wp_send_json_error( array( 'message' => '権限がありません。' ) );
         }
     }
