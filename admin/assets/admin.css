@@ -342,6 +342,43 @@
     min-width: 6em;
 }
 
+/* 全ツールのCSV出力統合までの暫定ボタン */
+.fa-wrap .fa-summary__csv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #2e6da4;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fa-wrap .fa-summary__csv .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.fa-wrap .fa-summary__csv:hover {
+    background: #f0f6fc;
+}
+
+.fa-wrap .fa-summary__csv:focus-visible {
+    outline: 2px solid #2e6da4;
+    outline-offset: 2px;
+}
+
+.fa-wrap .fa-summary__csv:disabled {
+    opacity: .5;
+    cursor: wait;
+}
+
 .fa-summary-table tfoot th,
 .fa-records-table tfoot th {
     background: #eef2f6;

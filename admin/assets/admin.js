@@ -839,6 +839,49 @@
         }
 
         $show.on('click', load);
+        // 暫定CSV出力：全ツールのCSV統合時はこのブロックと専用ボタンを撤去する。
+        // 集計は画面と同じ、権限・nonce検証済みのAPIを利用する。
+        var $csv = $('#fa-summary-csv');
+
+        function csvCell(value) {
+            var text = String(value == null ? '' : value);
+            // 氏名などが表計算ソフトで数式として解釈されるのを防ぐ。
+            if (/^[\s]*[=+@-]|^[\t\r\n]/.test(text)) { text = "'" + text; }
+            return '"' + text.replace(/"/g, '""') + '"';
+        }
+
+        $csv.on('click', function () {
+            var year = $year.val();
+            var month = $month.val();
+            $csv.prop('disabled', true);
+            $msg.hide().removeClass('is-error is-success');
+            faPost('fa_summary_get', 'summary', { year: year, month: month })
+                .done(function (res) {
+                    if (!res || !res.success || !res.data || !Array.isArray(res.data.items)) {
+                        $msg.addClass('is-error').text('CSV出力用のデータを取得できませんでした。').show();
+                        return;
+                    }
+                    var rows = [['氏名', 'フェリー手当（月）', '件数']];
+                    res.data.items.forEach(function (item) {
+                        rows.push([item.employee_name, item.total, item.count]);
+                    });
+                    var csv = '\uFEFF' + rows.map(function (row) {
+                        return row.map(csvCell).join(',');
+                    }).join('\r\n') + '\r\n';
+                    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+                    var link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'ferry-allowance-' + year + '-' + ('0' + month).slice(-2) + '.csv';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                })
+                .fail(function () {
+                    $msg.addClass('is-error').text('通信エラーによりCSV出力できませんでした。再度お試しください。').show();
+                })
+                .always(function () { $csv.prop('disabled', false); });
+        });
     }
 
     // =====================================================

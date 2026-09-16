@@ -28,6 +28,9 @@ $fa_month = (int) gmdate( 'n', $fa_now );
                 </select>
             </label>
             <button type="button" class="button button-primary" id="fa-summary-show">表示</button>
+            <button type="button" class="fa-summary__csv" id="fa-summary-csv">
+                <span class="dashicons dashicons-download" aria-hidden="true"></span>CSV出力
+            </button>
         </div>
 
         <div class="fa-msg" id="fa-summary-msg" style="display:none;"></div>
