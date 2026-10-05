@@ -227,6 +227,35 @@ class FA_Record {
         return $rows;
     }
 
+    /**
+     * 絞り込み用の候補（実績が登録されている乗車名・車番のみ）
+     *
+     * @return array { employees: [ {code, name} ], vehicles: [ 車番, ... ] }
+     */
+    public static function get_filter_options() {
+        global $wpdb;
+        $table = FA_DB_Install::table_records();
+
+        $emp_rows = $wpdb->get_results( "SELECT employee_code, MAX(employee_name) AS employee_name FROM `{$table}` GROUP BY employee_code" ); // phpcs:ignore
+        $map      = FA_Employee_Bridge::get_code_name_map();
+        $employees = array();
+        if ( is_array( $emp_rows ) ) {
+            foreach ( $emp_rows as $row ) {
+                $employees[] = array(
+                    'code' => (string) $row->employee_code,
+                    'name' => FA_Employee_Bridge::resolve_name( $row->employee_code, $row->employee_name, $map ),
+                );
+            }
+        }
+
+        $vehicles = $wpdb->get_col( "SELECT DISTINCT vehicle_code FROM `{$table}` ORDER BY vehicle_code ASC" ); // phpcs:ignore
+
+        return array(
+            'employees' => $employees,
+            'vehicles'  => is_array( $vehicles ) ? $vehicles : array(),
+        );
+    }
+
     public static function get_by_id( $id ) {
         global $wpdb;
         $table = FA_DB_Install::table_records();
@@ -384,7 +413,7 @@ class FA_Record {
             'employee_code' => isset( $_POST['employee_code'] ) ? sanitize_text_field( wp_unslash( $_POST['employee_code'] ) ) : '',
             'vehicle_code'  => isset( $_POST['vehicle_code'] )  ? sanitize_text_field( wp_unslash( $_POST['vehicle_code'] ) )  : '',
         ) );
-        wp_send_json_success( array( 'items' => $rows ) );
+        wp_send_json_success( array( 'items' => $rows, 'filters' => self::get_filter_options() ) );
     }
 
     public static function ajax_update() {
