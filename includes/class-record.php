@@ -163,35 +163,10 @@ class FA_Record {
     public static function get_records( $args = array() ) {
         global $wpdb;
 
-        $year  = isset( $args['year'] )  ? (int) $args['year']  : 0;
-        $month = isset( $args['month'] ) ? (int) $args['month'] : 0;
         $table = FA_DB_Install::table_records();
 
-        $where  = array( '1=1' );
-        $params = array();
+        list( $where, $params ) = self::period_where( $args );
 
-        $date_from = isset( $args['date_from'] ) ? trim( (string) $args['date_from'] ) : '';
-        $date_to   = isset( $args['date_to'] )   ? trim( (string) $args['date_to'] )   : '';
-        $has_from  = '' !== $date_from && self::valid_date( $date_from );
-        $has_to    = '' !== $date_to && self::valid_date( $date_to );
-
-        if ( $has_from || $has_to ) {
-            // 日付範囲の指定がある場合は対象年月より優先する
-            if ( $has_from ) {
-                $where[]  = 'use_date >= %s';
-                $params[] = $date_from;
-            }
-            if ( $has_to ) {
-                $where[]  = 'use_date <= %s';
-                $params[] = $date_to;
-            }
-        } elseif ( $year > 0 && $month > 0 ) {
-            $start = sprintf( '%04d-%02d-01', $year, $month );
-            $end   = gmdate( 'Y-m-t', strtotime( $start ) );
-            $where[]  = 'use_date BETWEEN %s AND %s';
-            $params[] = $start;
-            $params[] = $end;
-        }
         if ( ! empty( $args['employee_code'] ) ) {
             $where[]  = 'employee_code = %s';
             $params[] = (string) $args['employee_code'];
@@ -228,15 +203,65 @@ class FA_Record {
     }
 
     /**
-     * 絞り込み用の候補（実績が登録されている乗車名・車番のみ）
+     * 期間の WHERE 条件を組み立てる
+     * date_from / date_to の指定があれば year・month より優先する。
      *
+     * @param array $args  year, month, date_from, date_to
+     * @return array       [ $where(配列), $params(配列) ]
+     */
+    private static function period_where( $args ) {
+        $year  = isset( $args['year'] )  ? (int) $args['year']  : 0;
+        $month = isset( $args['month'] ) ? (int) $args['month'] : 0;
+
+        $where  = array( '1=1' );
+        $params = array();
+
+        $date_from = isset( $args['date_from'] ) ? trim( (string) $args['date_from'] ) : '';
+        $date_to   = isset( $args['date_to'] )   ? trim( (string) $args['date_to'] )   : '';
+        $has_from  = '' !== $date_from && self::valid_date( $date_from );
+        $has_to    = '' !== $date_to && self::valid_date( $date_to );
+
+        if ( $has_from || $has_to ) {
+            if ( $has_from ) {
+                $where[]  = 'use_date >= %s';
+                $params[] = $date_from;
+            }
+            if ( $has_to ) {
+                $where[]  = 'use_date <= %s';
+                $params[] = $date_to;
+            }
+        } elseif ( $year > 0 && $month > 0 ) {
+            $start = sprintf( '%04d-%02d-01', $year, $month );
+            $end   = gmdate( 'Y-m-t', strtotime( $start ) );
+            $where[]  = 'use_date BETWEEN %s AND %s';
+            $params[] = $start;
+            $params[] = $end;
+        }
+
+        return array( $where, $params );
+    }
+
+    /**
+     * 絞り込み用の候補（対象期間に実績が登録されている乗車名・車番のみ）
+     *
+     * @param array $args  year, month, date_from, date_to（get_records と同じ期間指定）
      * @return array { employees: [ {code, name} ], vehicles: [ 車番, ... ] }
      */
-    public static function get_filter_options() {
+    public static function get_filter_options( $args = array() ) {
         global $wpdb;
         $table = FA_DB_Install::table_records();
 
-        $emp_rows = $wpdb->get_results( "SELECT employee_code, MAX(employee_name) AS employee_name FROM `{$table}` GROUP BY employee_code" ); // phpcs:ignore
+        list( $where, $params ) = self::period_where( $args );
+        $where_sql = 'WHERE ' . implode( ' AND ', $where );
+
+        $emp_sql = "SELECT employee_code, MAX(employee_name) AS employee_name FROM `{$table}` {$where_sql} GROUP BY employee_code";
+        $veh_sql = "SELECT DISTINCT vehicle_code FROM `{$table}` {$where_sql} ORDER BY vehicle_code ASC";
+        if ( ! empty( $params ) ) {
+            $emp_sql = $wpdb->prepare( $emp_sql, ...$params ); // phpcs:ignore
+            $veh_sql = $wpdb->prepare( $veh_sql, ...$params ); // phpcs:ignore
+        }
+
+        $emp_rows = $wpdb->get_results( $emp_sql ); // phpcs:ignore
         $map      = FA_Employee_Bridge::get_code_name_map();
         $employees = array();
         if ( is_array( $emp_rows ) ) {
@@ -248,7 +273,7 @@ class FA_Record {
             }
         }
 
-        $vehicles = $wpdb->get_col( "SELECT DISTINCT vehicle_code FROM `{$table}` ORDER BY vehicle_code ASC" ); // phpcs:ignore
+        $vehicles = $wpdb->get_col( $veh_sql ); // phpcs:ignore
 
         return array(
             'employees' => $employees,
@@ -405,15 +430,17 @@ class FA_Record {
 
     public static function ajax_get_list() {
         self::verify( 'access_custom_plugins' );
-        $rows = self::get_records( array(
-            'year'          => isset( $_POST['year'] )  ? (int) $_POST['year']  : 0,
-            'month'         => isset( $_POST['month'] ) ? (int) $_POST['month'] : 0,
-            'date_from'     => isset( $_POST['date_from'] ) ? sanitize_text_field( wp_unslash( $_POST['date_from'] ) ) : '',
-            'date_to'       => isset( $_POST['date_to'] )   ? sanitize_text_field( wp_unslash( $_POST['date_to'] ) )   : '',
+        $period = array(
+            'year'      => isset( $_POST['year'] )  ? (int) $_POST['year']  : 0,
+            'month'     => isset( $_POST['month'] ) ? (int) $_POST['month'] : 0,
+            'date_from' => isset( $_POST['date_from'] ) ? sanitize_text_field( wp_unslash( $_POST['date_from'] ) ) : '',
+            'date_to'   => isset( $_POST['date_to'] )   ? sanitize_text_field( wp_unslash( $_POST['date_to'] ) )   : '',
+        );
+        $rows = self::get_records( $period + array(
             'employee_code' => isset( $_POST['employee_code'] ) ? sanitize_text_field( wp_unslash( $_POST['employee_code'] ) ) : '',
             'vehicle_code'  => isset( $_POST['vehicle_code'] )  ? sanitize_text_field( wp_unslash( $_POST['vehicle_code'] ) )  : '',
         ) );
-        wp_send_json_success( array( 'items' => $rows, 'filters' => self::get_filter_options() ) );
+        wp_send_json_success( array( 'items' => $rows, 'filters' => self::get_filter_options( $period ) ) );
     }
 
     public static function ajax_update() {

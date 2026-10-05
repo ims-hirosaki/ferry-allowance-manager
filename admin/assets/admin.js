@@ -944,8 +944,11 @@
             });
             $fEmp.val(curEmp);
             $fVeh.val(curVeh);
-            if ($fEmp.val() === null) { $fEmp.val(''); }
-            if ($fVeh.val() === null) { $fVeh.val(''); }
+            // 選択中の値が新しい候補に無ければ「すべて」に戻す（戻したら true）
+            var reset = false;
+            if ($fEmp.val() === null) { $fEmp.val(''); reset = true; }
+            if ($fVeh.val() === null) { $fVeh.val(''); reset = true; }
+            return reset;
         }
 
         updateFilterOptions(FA.recordFilters);
@@ -955,6 +958,7 @@
             load();
         });
         $fEmp.on('change', load);
+        $year.add($month).on('change', load);
         $fFrom.add($fTo).on('change', function () {
             if ($fFrom.val() && $fTo.val() && $fFrom.val() > $fTo.val()) {
                 showMsg($msg, '乗車月日の開始日が終了日より後になっています。', true);
@@ -973,7 +977,8 @@
                 employee_code: $fEmp.val(), vehicle_code: $fVeh.val()
             }).done(function (res) {
                 if (!res || !res.success) { $tbody.html('<tr><td colspan="9">取得に失敗しました。</td></tr>'); return; }
-                updateFilterOptions(res.data.filters);
+                // 期間を変えて選択中の乗車名・車番が候補から外れた場合は、「すべて」で取得し直す
+                if (updateFilterOptions(res.data.filters)) { load(); return; }
                 render(res.data.items || []);
             }).fail(function () { $tbody.html('<tr><td colspan="9">通信エラーが発生しました。</td></tr>'); });
         }
