@@ -76,6 +76,24 @@ $fa_month = (int) gmdate( 'n', $fa_now );
             <button type="button" class="button button-primary" id="fa-records-show">表示</button>
         </div>
 
+        <div class="fa-records__toolbar fa-records__filters">
+            <label>乗車月日：
+                <input type="date" id="fa-records-filter-from">
+                〜
+                <input type="date" id="fa-records-filter-to">
+            </label>
+            <label>乗車名：
+                <select id="fa-records-filter-emp">
+                    <option value="">すべて</option>
+                </select>
+            </label>
+            <label>車番：
+                <input type="text" id="fa-records-filter-vehicle" list="fa-vehicle-datalist" placeholder="車番" style="width:8em;">
+            </label>
+            <button type="button" class="button" id="fa-records-filter-clear">条件クリア</button>
+            <span class="description">※乗車月日を指定した場合は、対象年月より優先されます。</span>
+        </div>
+
         <table class="fa-table fa-records-table">
             <thead>
                 <tr>

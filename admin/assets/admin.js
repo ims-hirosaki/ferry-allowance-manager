@@ -920,11 +920,37 @@
         $('#fa-route-datalist').html(routeDatalistHtml());
         $('#fa-vehicle-datalist').html(vehicleDatalistHtml());
 
+        // 絞り込み（乗車月日・乗車名・車番）
+        var $fFrom = $('#fa-records-filter-from');
+        var $fTo = $('#fa-records-filter-to');
+        var $fEmp = $('#fa-records-filter-emp');
+        var $fVeh = $('#fa-records-filter-vehicle');
+
+        (FA.employees || []).forEach(function (employee) {
+            $fEmp.append($('<option>').val(employee.code).text(employee.name + '（' + employee.code + '）'));
+        });
+
+        $('#fa-records-filter-clear').on('click', function () {
+            $fFrom.val(''); $fTo.val(''); $fEmp.val(''); $fVeh.val('');
+            load();
+        });
+        $fEmp.on('change', load);
+        $fFrom.add($fTo).on('change', function () {
+            if ($fFrom.val() && $fTo.val() && $fFrom.val() > $fTo.val()) {
+                showMsg($msg, '乗車月日の開始日が終了日より後になっています。', true);
+                return;
+            }
+            load();
+        });
+        $fVeh.on('change', load);
+
         // 一覧
         function load() {
             $tbody.html('<tr><td colspan="9">読み込み中…</td></tr>');
             faPost('fa_record_get_list', 'record', {
-                year: $year.val(), month: $month.val()
+                year: $year.val(), month: $month.val(),
+                date_from: $fFrom.val(), date_to: $fTo.val(),
+                employee_code: $fEmp.val(), vehicle_code: $.trim($fVeh.val())
             }).done(function (res) {
                 if (!res || !res.success) { $tbody.html('<tr><td colspan="9">取得に失敗しました。</td></tr>'); return; }
                 render(res.data.items || []);
@@ -979,7 +1005,7 @@
             currentItems = items;
             updateSortHeaders();
             if (!items.length) {
-                $tbody.html('<tr><td colspan="9">この月の実績はありません。</td></tr>');
+                $tbody.html('<tr><td colspan="9">該当する実績はありません。</td></tr>');
                 $total.text('0');
                 return;
             }
