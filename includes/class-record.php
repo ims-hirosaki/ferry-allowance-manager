@@ -157,7 +157,7 @@ class FA_Record {
     /**
      * 対象年月の利用実績を取得（氏名はライブ解決）
      *
-     * @param array $args  year, month, employee_code(任意), vehicle_code(任意)
+     * @param array $args  year, month, date_from/date_to(任意・指定時は年月より優先), employee_code(任意), vehicle_code(任意)
      * @return array
      */
     public static function get_records( $args = array() ) {
@@ -170,7 +170,22 @@ class FA_Record {
         $where  = array( '1=1' );
         $params = array();
 
-        if ( $year > 0 && $month > 0 ) {
+        $date_from = isset( $args['date_from'] ) ? trim( (string) $args['date_from'] ) : '';
+        $date_to   = isset( $args['date_to'] )   ? trim( (string) $args['date_to'] )   : '';
+        $has_from  = '' !== $date_from && self::valid_date( $date_from );
+        $has_to    = '' !== $date_to && self::valid_date( $date_to );
+
+        if ( $has_from || $has_to ) {
+            // 日付範囲の指定がある場合は対象年月より優先する
+            if ( $has_from ) {
+                $where[]  = 'use_date >= %s';
+                $params[] = $date_from;
+            }
+            if ( $has_to ) {
+                $where[]  = 'use_date <= %s';
+                $params[] = $date_to;
+            }
+        } elseif ( $year > 0 && $month > 0 ) {
             $start = sprintf( '%04d-%02d-01', $year, $month );
             $end   = gmdate( 'Y-m-t', strtotime( $start ) );
             $where[]  = 'use_date BETWEEN %s AND %s';
@@ -364,6 +379,8 @@ class FA_Record {
         $rows = self::get_records( array(
             'year'          => isset( $_POST['year'] )  ? (int) $_POST['year']  : 0,
             'month'         => isset( $_POST['month'] ) ? (int) $_POST['month'] : 0,
+            'date_from'     => isset( $_POST['date_from'] ) ? sanitize_text_field( wp_unslash( $_POST['date_from'] ) ) : '',
+            'date_to'       => isset( $_POST['date_to'] )   ? sanitize_text_field( wp_unslash( $_POST['date_to'] ) )   : '',
             'employee_code' => isset( $_POST['employee_code'] ) ? sanitize_text_field( wp_unslash( $_POST['employee_code'] ) ) : '',
             'vehicle_code'  => isset( $_POST['vehicle_code'] )  ? sanitize_text_field( wp_unslash( $_POST['vehicle_code'] ) )  : '',
         ) );
