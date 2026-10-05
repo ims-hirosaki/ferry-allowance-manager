@@ -939,7 +939,11 @@
                 $fEmp.append($('<option>').val(employee.code).text(employee.name + '（' + employee.code + '）'));
             });
             $fVeh.empty().append($('<option>').val('').text('すべて'));
-            (filters.vehicles || []).forEach(function (code) {
+            // 車番は数字として自然順に並べる（3000 が 39 より後ろになるように）
+            var vehs = (filters.vehicles || []).slice().sort(function (a, b) {
+                return String(a).localeCompare(String(b), 'ja', { numeric: true });
+            });
+            vehs.forEach(function (code) {
                 $fVeh.append($('<option>').val(code).text(code));
             });
             $fEmp.val(curEmp);
@@ -999,7 +1003,7 @@
                 if (isNum) {
                     c = (parseInt(av, 10) || 0) - (parseInt(bv, 10) || 0);
                 } else {
-                    c = String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), 'ja');
+                    c = String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), 'ja', { numeric: key === 'vehicle_code' });
                 }
                 if (c !== 0) { return c * dir; }
                 return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0);
