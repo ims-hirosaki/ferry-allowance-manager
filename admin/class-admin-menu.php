@@ -154,6 +154,8 @@ class FA_Admin_Menu {
                 'vehicleEmployees' => FA_Vehicle_Bridge::get_employee_map(),
                 // 例外時の乗車名選択用（在籍社員）
                 'employees'      => $this->employees_for_select(),
+                // 実績一覧の絞り込み候補（実績が登録されている乗車名・車番）
+                'recordFilters'  => FA_Record::get_filter_options(),
                 // 未登録時の誘導リンク
                 'links'          => array(
                     'vehicle'  => admin_url( 'admin.php?page=vm-vehicle-form' ),

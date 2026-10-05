@@ -926,9 +926,29 @@
         var $fEmp = $('#fa-records-filter-emp');
         var $fVeh = $('#fa-records-filter-vehicle');
 
-        (FA.employees || []).forEach(function (employee) {
-            $fEmp.append($('<option>').val(employee.code).text(employee.name + '（' + employee.code + '）'));
-        });
+        // 候補は実績が登録されている乗車名・車番のみ（一覧取得のたびに更新し、選択中の値は維持）
+        function updateFilterOptions(filters) {
+            if (!filters) { return; }
+            var curEmp = $fEmp.val();
+            var curVeh = $fVeh.val();
+            var emps = (filters.employees || []).slice().sort(function (a, b) {
+                return String(a.name).localeCompare(String(b.name), 'ja');
+            });
+            $fEmp.empty().append($('<option>').val('').text('すべて'));
+            emps.forEach(function (employee) {
+                $fEmp.append($('<option>').val(employee.code).text(employee.name + '（' + employee.code + '）'));
+            });
+            $fVeh.empty().append($('<option>').val('').text('すべて'));
+            (filters.vehicles || []).forEach(function (code) {
+                $fVeh.append($('<option>').val(code).text(code));
+            });
+            $fEmp.val(curEmp);
+            $fVeh.val(curVeh);
+            if ($fEmp.val() === null) { $fEmp.val(''); }
+            if ($fVeh.val() === null) { $fVeh.val(''); }
+        }
+
+        updateFilterOptions(FA.recordFilters);
 
         $('#fa-records-filter-clear').on('click', function () {
             $fFrom.val(''); $fTo.val(''); $fEmp.val(''); $fVeh.val('');
@@ -950,9 +970,10 @@
             faPost('fa_record_get_list', 'record', {
                 year: $year.val(), month: $month.val(),
                 date_from: $fFrom.val(), date_to: $fTo.val(),
-                employee_code: $fEmp.val(), vehicle_code: $.trim($fVeh.val())
+                employee_code: $fEmp.val(), vehicle_code: $fVeh.val()
             }).done(function (res) {
                 if (!res || !res.success) { $tbody.html('<tr><td colspan="9">取得に失敗しました。</td></tr>'); return; }
+                updateFilterOptions(res.data.filters);
                 render(res.data.items || []);
             }).fail(function () { $tbody.html('<tr><td colspan="9">通信エラーが発生しました。</td></tr>'); });
         }
