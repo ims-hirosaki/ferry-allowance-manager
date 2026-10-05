@@ -391,6 +391,24 @@
     font-size: 14px;
 }
 
+/* 実績一覧のソート可能な列見出し */
+.fa-records-table th.fa-sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.fa-records-table th.fa-sortable:hover {
+    text-decoration: underline;
+}
+
+.fa-records-table .fa-sort-ind {
+    display: inline-block;
+    min-width: 1em;
+    margin-left: 2px;
+    font-size: 10px;
+}
+
 /* 実績編集フォーム */
 .fa-records__editcard {
     border-left: 4px solid #1e3a5f;

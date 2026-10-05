@@ -129,6 +129,7 @@ class FA_DB_Install {
             employee_code  VARCHAR(20)         NOT NULL                          COMMENT '従業員コード（乗車名マスタまたは社員選択・スナップショット）',
             employee_name  VARCHAR(100)            NULL DEFAULT NULL             COMMENT '氏名スナップショット（表示フォールバック用）',
             vehicle_code   VARCHAR(20)         NOT NULL                          COMMENT '車番（vehicle-managerの一連指定番号・入力値スナップショット）',
+            transport_bureau VARCHAR(50)       NULL DEFAULT NULL                 COMMENT '運輸支局スナップショット（vehicle-manager・表示フォールバック用）',
             use_date       DATE                NOT NULL                          COMMENT '乗車月日',
             route_id       INT UNSIGNED        NOT NULL                          COMMENT 'FK: ferry_routes.id',
             route_no       SMALLINT UNSIGNED   NOT NULL                          COMMENT '登録時点の航路番号',
