@@ -11,8 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 $fa_companies = FA_Company::get_list();
 ?>
-<div class="wrap fa-wrap fa-routes">
-    <h1>航路マスタ管理</h1>
+<div class="fa-routes">
 
     <div class="fa-msg" id="fa-route-msg" style="display:none;"></div>
 

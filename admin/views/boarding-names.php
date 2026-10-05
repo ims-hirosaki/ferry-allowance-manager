@@ -5,8 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $fa_vehicles  = FA_Vehicle_Bridge::get_vehicle_numbers();
 $fa_employees = FA_Employee_Bridge::get_active_employees();
 ?>
-<div class="wrap fa-wrap fa-boarding-names">
-    <h1>乗車名マスタ</h1>
+<div class="fa-boarding-names">
     <p class="description" style="margin:0 0 12px;">
         車両管理の車番と、通常乗車する社員を紐づけます。入力画面ではこの設定から乗車名が自動表示されます。変更しても登録済みの過去実績には影響しません。
     </p>

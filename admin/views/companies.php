@@ -8,8 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * データ取得・保存は admin.js から AJAX（fa_company_*）で行う。
  */
 ?>
-<div class="wrap fa-wrap fa-companies">
-    <h1>フェリー会社マスタ</h1>
+<div class="fa-companies">
 
     <div class="fa-msg" id="fa-company-msg" style="display:none;"></div>
 

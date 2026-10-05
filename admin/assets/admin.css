@@ -11,6 +11,11 @@
     margin-bottom: 12px;
 }
 
+/* マスタ管理のタブ */
+.fa-master__tabs {
+    margin-bottom: 16px;
+}
+
 /* カード */
 .fa-card {
     background: #fff;
