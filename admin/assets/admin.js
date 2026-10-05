@@ -922,23 +922,69 @@
 
         // 一覧
         function load() {
-            $tbody.html('<tr><td colspan="8">読み込み中…</td></tr>');
+            $tbody.html('<tr><td colspan="9">読み込み中…</td></tr>');
             faPost('fa_record_get_list', 'record', {
                 year: $year.val(), month: $month.val()
             }).done(function (res) {
-                if (!res || !res.success) { $tbody.html('<tr><td colspan="8">取得に失敗しました。</td></tr>'); return; }
+                if (!res || !res.success) { $tbody.html('<tr><td colspan="9">取得に失敗しました。</td></tr>'); return; }
                 render(res.data.items || []);
-            }).fail(function () { $tbody.html('<tr><td colspan="8">通信エラーが発生しました。</td></tr>'); });
+            }).fail(function () { $tbody.html('<tr><td colspan="9">通信エラーが発生しました。</td></tr>'); });
         }
 
+        // ソート（列見出しクリックで昇順⇔降順。初期は乗車月日の昇順）
+        var currentItems = [];
+        var sortKey = 'use_date';
+        var sortDir = 1;
+        var numericKeys = { route_no: true, allowance: true };
+
+        function sortedItems() {
+            var key = sortKey;
+            var dir = sortDir;
+            var isNum = !!numericKeys[key];
+            return currentItems.slice().sort(function (a, b) {
+                var av = a[key], bv = b[key];
+                var c;
+                if (isNum) {
+                    c = (parseInt(av, 10) || 0) - (parseInt(bv, 10) || 0);
+                } else {
+                    c = String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), 'ja');
+                }
+                if (c !== 0) { return c * dir; }
+                return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0);
+            });
+        }
+
+        function updateSortHeaders() {
+            $('.fa-records-table th.fa-sortable').each(function () {
+                var $th = $(this);
+                var active = $th.data('sort') === sortKey;
+                $th.toggleClass('is-sorted', active)
+                    .attr('aria-sort', active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none');
+                $th.find('.fa-sort-ind').text(active ? (sortDir === 1 ? '▲' : '▼') : '');
+            });
+        }
+
+        $('.fa-records-table').on('click', 'th.fa-sortable', function () {
+            var key = $(this).data('sort');
+            if (key === sortKey) {
+                sortDir = -sortDir;
+            } else {
+                sortKey = key;
+                sortDir = 1;
+            }
+            render(currentItems);
+        });
+
         function render(items) {
+            currentItems = items;
+            updateSortHeaders();
             if (!items.length) {
-                $tbody.html('<tr><td colspan="8">この月の実績はありません。</td></tr>');
+                $tbody.html('<tr><td colspan="9">この月の実績はありません。</td></tr>');
                 $total.text('0');
                 return;
             }
             var sum = 0;
-            var rows = items.map(function (r) {
+            var rows = sortedItems().map(function (r) {
                 sum += parseInt(r.allowance, 10) || 0;
                 return '' +
                     '<tr data-id="' + esc(r.id) + '"' +
@@ -951,6 +997,7 @@
                     '<td>' + esc(r.route_no) + '</td>' +
                     '<td>' + esc(r.route_name) + '</td>' +
                     '<td>' + esc(r.company_name || '') + '</td>' +
+                    '<td>' + esc(r.transport_bureau || '') + '</td>' +
                     '<td>' + esc(r.vehicle_code) + '</td>' +
                     '<td>' + esc(r.employee_name) + '</td>' +
                     '<td class="fa-num">' + faFormatNumber(r.allowance) + '</td>' +

@@ -37,6 +37,32 @@ class FA_Vehicle_Bridge {
     }
 
     /**
+     * 車番 → 運輸支局 のマップを取得する（vehicle-manager 未対応版の場合は空配列）
+     *
+     * @return array
+     */
+    public static function get_transport_bureau_map() {
+        if ( function_exists( 'vm_get_transport_bureau_map' ) ) {
+            $map = vm_get_transport_bureau_map();
+            return is_array( $map ) ? $map : array();
+        }
+        return array();
+    }
+
+    /**
+     * 指定した車番の運輸支局を取得する（未登録・未対応の場合は空文字）
+     *
+     * @param string $vehicle_code
+     * @return string
+     */
+    public static function get_transport_bureau( $vehicle_code ) {
+        if ( function_exists( 'vm_get_transport_bureau' ) ) {
+            return (string) vm_get_transport_bureau( $vehicle_code );
+        }
+        return '';
+    }
+
+    /**
      * 指定した車番が vehicle-manager に登録されているか
      *
      * @param string $vehicle_code

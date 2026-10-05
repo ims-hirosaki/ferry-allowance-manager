@@ -125,6 +125,7 @@ class FA_Record {
                     'employee_code' => $p['employee_code'],
                     'employee_name' => $p['employee_name'],
                     'vehicle_code'  => $p['vehicle_code'],
+                    'transport_bureau' => FA_Vehicle_Bridge::get_transport_bureau( $p['vehicle_code'] ),
                     'use_date'      => $p['use_date'],
                     'route_id'      => (int) $p['route']->id,
                     'route_no'      => (int) $p['route']->route_no,
@@ -136,7 +137,7 @@ class FA_Record {
                     'created_at'    => $now,
                     'updated_at'    => $now,
                 ),
-                array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s', '%s' )
+                array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s', '%s' )
             );
             $inserted++;
         }
@@ -197,10 +198,16 @@ class FA_Record {
             return array();
         }
 
-        $map = FA_Employee_Bridge::get_code_name_map();
+        $map    = FA_Employee_Bridge::get_code_name_map();
+        $bureau = FA_Vehicle_Bridge::get_transport_bureau_map();
         foreach ( $rows as $row ) {
             // 氏名はライブ優先、取れなければスナップショットにフォールバック
             $row->employee_name = FA_Employee_Bridge::resolve_name( $row->employee_code, $row->employee_name, $map );
+            // 運輸支局も車番に紐づけてライブ優先（既存データ・未取得時はスナップショット）
+            if ( isset( $bureau[ $row->vehicle_code ] ) && '' !== $bureau[ $row->vehicle_code ] ) {
+                $row->transport_bureau = $bureau[ $row->vehicle_code ];
+            }
+            $row->transport_bureau = (string) $row->transport_bureau;
         }
         return $rows;
     }
@@ -282,6 +289,7 @@ class FA_Record {
                 'employee_code' => $emp_code,
                 'employee_name' => $emp_name,
                 'vehicle_code'  => $vehicle_code,
+                'transport_bureau' => FA_Vehicle_Bridge::get_transport_bureau( $vehicle_code ),
                 'use_date'      => $use_date,
                 'route_id'      => (int) $route->id,
                 'route_no'      => (int) $route->route_no,
@@ -293,7 +301,7 @@ class FA_Record {
                 'updated_at'    => current_time( 'mysql' ),
             ),
             array( 'id' => $id ),
-            array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s' ),
+            array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d', '%s', '%s' ),
             array( '%d' )
         );
 

@@ -79,22 +79,23 @@ $fa_month = (int) gmdate( 'n', $fa_now );
         <table class="fa-table fa-records-table">
             <thead>
                 <tr>
-                    <th style="width:8em;">乗車月日</th>
-                    <th style="width:4em;">航路番号</th>
-                    <th>航路</th>
-                    <th style="width:10em;">フェリー会社</th>
-                    <th style="width:6em;">車番</th>
-                    <th style="width:10em;">乗車名</th>
-                    <th style="width:8em;">手当</th>
+                    <th class="fa-sortable" data-sort="use_date" style="width:8em;">乗車月日<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="route_no" style="width:4em;">航路番号<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="route_name">航路<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="company_name" style="width:10em;">フェリー会社<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="transport_bureau" style="width:8em;">運輸支局<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="vehicle_code" style="width:6em;">車番<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="employee_name" style="width:10em;">乗車名<span class="fa-sort-ind"></span></th>
+                    <th class="fa-sortable" data-sort="allowance" style="width:8em;">手当<span class="fa-sort-ind"></span></th>
                     <th style="width:9em;">操作</th>
                 </tr>
             </thead>
             <tbody id="fa-records-tbody">
-                <tr><td colspan="8">「表示」を押してください。</td></tr>
+                <tr><td colspan="9">「表示」を押してください。</td></tr>
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="6" style="text-align:right;">合計</th>
+                    <th colspan="7" style="text-align:right;">合計</th>
                     <th class="fa-num" id="fa-records-total">0</th>
                     <th></th>
                 </tr>
