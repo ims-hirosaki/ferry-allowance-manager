@@ -12,9 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   ├── フェリー手当入力     ferry-allowance
  *   ├── 月次サマリ           ferry-allowance-summary
  *   ├── 実績一覧・編集       ferry-allowance-records
- *   ├── 航路マスタ管理       ferry-allowance-routes
- *   ├── フェリー会社マスタ   ferry-allowance-companies
- *   └── 乗車名マスタ         ferry-allowance-boarding-names
+ *   └── マスタ管理           ferry-allowance-master（タブ切替）
+ *         ├── 航路マスタ         ?tab=routes
+ *         ├── フェリー会社マスタ ?tab=companies
+ *         └── 乗車名マスタ       ?tab=boarding-names（manage_options のみ）
  */
 class FA_Admin_Menu {
 
@@ -23,13 +24,31 @@ class FA_Admin_Menu {
         'ferry-allowance',
         'ferry-allowance-summary',
         'ferry-allowance-records',
-        'ferry-allowance-routes',
-        'ferry-allowance-companies',
-        'ferry-allowance-boarding-names',
+        'ferry-allowance-master',
     );
+
+    /** マスタ管理のタブ定義: tab => array( ラベル, 必要権限, ビューファイル ) */
+    private function master_tabs() {
+        return array(
+            'routes'         => array( '航路マスタ',         'access_custom_plugins', 'routes.php' ),
+            'companies'      => array( 'フェリー会社マスタ', 'access_custom_plugins', 'companies.php' ),
+            'boarding-names' => array( '乗車名マスタ',       'manage_options',        'boarding-names.php' ),
+        );
+    }
+
+    /** 現在のタブ（不正値・権限なしは先頭の許可タブへ） */
+    private function current_tab() {
+        $tab  = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $tabs = $this->master_tabs();
+        if ( isset( $tabs[ $tab ] ) && current_user_can( $tabs[ $tab ][1] ) ) {
+            return $tab;
+        }
+        return 'routes';
+    }
 
     public function __construct() {
         add_action( 'admin_menu',            array( $this, 'register_menu' ) );
+        add_action( 'admin_init',            array( $this, 'redirect_legacy_pages' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         $this->register_ajax_hooks();
     }
@@ -65,20 +84,26 @@ class FA_Admin_Menu {
             array( $this, 'render_records' )
         );
         add_submenu_page(
-            'ferry-allowance', '航路マスタ管理', '航路マスタ管理',
-            'access_custom_plugins', 'ferry-allowance-routes',
-            array( $this, 'render_routes' )
+            'ferry-allowance', 'マスタ管理', 'マスタ管理',
+            'access_custom_plugins', 'ferry-allowance-master',
+            array( $this, 'render_master' )
         );
-        add_submenu_page(
-            'ferry-allowance', 'フェリー会社マスタ', 'フェリー会社マスタ',
-            'access_custom_plugins', 'ferry-allowance-companies',
-            array( $this, 'render_companies' )
+    }
+
+    /**
+     * 旧マスタ画面のURL（ブックマーク等）を新しいタブ付きURLへ転送する。
+     */
+    public function redirect_legacy_pages() {
+        $page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $map  = array(
+            'ferry-allowance-routes'         => 'routes',
+            'ferry-allowance-companies'      => 'companies',
+            'ferry-allowance-boarding-names' => 'boarding-names',
         );
-        add_submenu_page(
-            'ferry-allowance', '乗車名マスタ', '乗車名マスタ',
-            'manage_options', 'ferry-allowance-boarding-names',
-            array( $this, 'render_boarding_names' )
-        );
+        if ( isset( $map[ $page ] ) ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=ferry-allowance-master&tab=' . $map[ $page ] ) );
+            exit;
+        }
     }
 
     // =====================================================
@@ -113,6 +138,7 @@ class FA_Admin_Menu {
             array(
                 'ajaxurl' => admin_url( 'admin-ajax.php' ),
                 'page'    => $page,
+                'tab'     => $this->current_tab(),
                 'nonce'   => array(
                     'company' => wp_create_nonce( FA_Company::NONCE_ACTION ),
                     'route'   => wp_create_nonce( FA_Route::NONCE_ACTION ),
@@ -208,16 +234,31 @@ class FA_Admin_Menu {
         $this->render_view( 'records.php', '実績一覧・編集' );
     }
 
-    public function render_routes() {
-        $this->render_view( 'routes.php', '航路マスタ管理' );
-    }
+    public function render_master() {
+        if ( ! current_user_can( 'access_custom_plugins' ) ) {
+            wp_die( '権限がありません。', '', array( 'response' => 403 ) );
+        }
+        $current = $this->current_tab();
+        $tabs    = $this->master_tabs();
 
-    public function render_companies() {
-        $this->render_view( 'companies.php', 'フェリー会社マスタ' );
-    }
-
-    public function render_boarding_names() {
-        $this->render_view( 'boarding-names.php', '乗車名マスタ' );
+        echo '<div class="wrap fa-wrap fa-master">';
+        echo '<h1>マスタ管理</h1>';
+        echo '<nav class="nav-tab-wrapper fa-master__tabs">';
+        foreach ( $tabs as $key => $def ) {
+            if ( ! current_user_can( $def[1] ) ) {
+                continue;
+            }
+            printf(
+                '<a href="%s" class="nav-tab%s">%s</a>',
+                esc_url( admin_url( 'admin.php?page=ferry-allowance-master&tab=' . $key ) ),
+                $key === $current ? ' nav-tab-active' : '',
+                esc_html( $def[0] )
+            );
+        }
+        echo '</nav>';
+        echo '<div class="fa-master__body">';
+        $this->render_view( $tabs[ $current ][2], $tabs[ $current ][0] );
+        echo '</div></div>';
     }
 
     /**

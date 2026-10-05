@@ -1129,9 +1129,11 @@
             case 'ferry-allowance': initEntry(); break;
             case 'ferry-allowance-summary': initSummary(); break;
             case 'ferry-allowance-records': initRecords(); break;
-            case 'ferry-allowance-routes': initRoutes(); break;
-            case 'ferry-allowance-companies': initCompanies(); break;
-            case 'ferry-allowance-boarding-names': initBoardingNames(); break;
+            case 'ferry-allowance-master':
+                if (FA.tab === 'companies') { initCompanies(); }
+                else if (FA.tab === 'boarding-names') { initBoardingNames(); }
+                else { initRoutes(); }
+                break;
             default: break;
         }
     });
