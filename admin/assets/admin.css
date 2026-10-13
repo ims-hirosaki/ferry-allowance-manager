@@ -384,6 +384,32 @@
     cursor: wait;
 }
 
+/* シミュレーションの集計単位切り替え */
+.fa-sim-mode {
+    display: inline-flex;
+    margin-bottom: 12px;
+}
+
+.fa-sim-mode__btn.button {
+    border-radius: 0;
+    margin: 0;
+}
+
+.fa-sim-mode__btn.button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.fa-sim-mode__btn.button:last-child {
+    border-radius: 0 4px 4px 0;
+    margin-left: -1px;
+}
+
+.fa-sim-mode__btn.button.is-active {
+    background: #2e6da4;
+    border-color: #2e6da4;
+    color: #fff;
+}
+
 .fa-summary-table tfoot th,
 .fa-records-table tfoot th {
     background: #eef2f6;
