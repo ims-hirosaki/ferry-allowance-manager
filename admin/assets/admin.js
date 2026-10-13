@@ -589,6 +589,181 @@
     }
 
     // =====================================================
+    //  シミュレーション航路マスタ（運用管理者以上）
+    // =====================================================
+
+    function initSimRoutes() {
+        var $msg = $('#fa-sim-msg');
+        var $tbody = $('#fa-sim-tbody');
+        var $id = $('#fa-sim-id');
+        var $route = $('#fa-sim-route');
+        var $allow = $('#fa-sim-allowance');
+        var $title = $('#fa-sim-form-title');
+        var $save = $('#fa-sim-save');
+        var $reset = $('#fa-sim-reset');
+
+        function resetForm() {
+            $id.val('0');
+            $route.val('');
+            $allow.val('');
+            $title.text('シミュレーション航路を登録');
+            $save.text('登録');
+            $reset.hide();
+        }
+
+        function loadList() {
+            faPost('fa_sim_get_list', 'sim').done(function (res) {
+                if (!res || !res.success) {
+                    $tbody.html('<tr><td colspan="5">取得に失敗しました。</td></tr>');
+                    return;
+                }
+                var items = res.data.items || [];
+                if (!items.length) {
+                    $tbody.html('<tr><td colspan="5">シミュレーション航路が登録されていません。</td></tr>');
+                    return;
+                }
+                $tbody.html(items.map(function (item) {
+                    return '<tr data-id="' + esc(item.id) + '" data-route="' + esc(item.route_id) + '"' +
+                        ' data-allowance="' + esc(item.sim_allowance) + '" data-name="' + esc(item.route_name) + '">' +
+                        '<td>' + esc(item.route_no) + '</td>' +
+                        '<td>' + esc(item.route_name) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(item.current_allowance) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(item.sim_allowance) + '</td>' +
+                        '<td><button type="button" class="button fa-btn-sm js-sim-edit">編集</button> ' +
+                        '<button type="button" class="button fa-btn-sm js-sim-delete">削除</button></td></tr>';
+                }).join(''));
+            }).fail(function () {
+                $tbody.html('<tr><td colspan="5">通信エラーが発生しました。</td></tr>');
+            });
+        }
+
+        $save.on('click', function () {
+            if (!$route.val()) { showMsg($msg, '航路を選択してください。', true); return; }
+            if ($allow.val() === '') { showMsg($msg, '手当金額を入力してください。', true); return; }
+            $save.prop('disabled', true);
+            faPost('fa_sim_save', 'sim', {
+                id: $id.val(), route_id: $route.val(), allowance: $allow.val()
+            }).done(function (res) {
+                if (res && res.success) {
+                    showMsg($msg, res.data.message || '保存しました。', false);
+                    resetForm(); loadList();
+                } else {
+                    showMsg($msg, (res && res.data && res.data.message) ? res.data.message : '保存に失敗しました。', true);
+                }
+            }).fail(function () { showMsg($msg, '通信エラーが発生しました。', true); })
+                .always(function () { $save.prop('disabled', false); });
+        });
+        $reset.on('click', resetForm);
+
+        $tbody.on('click', '.js-sim-edit', function () {
+            var $row = $(this).closest('tr');
+            $id.val($row.data('id'));
+            $route.val(String($row.data('route')));
+            $allow.val($row.data('allowance'));
+            $title.text('シミュレーション航路を編集（' + $row.data('name') + '）');
+            $save.text('更新'); $reset.show();
+        });
+        $tbody.on('click', '.js-sim-delete', function () {
+            var $row = $(this).closest('tr');
+            if (!window.confirm('「' + $row.data('name') + '」をシミュレーション航路から削除しますか？')) { return; }
+            faPost('fa_sim_delete', 'sim', { id: $row.data('id') }).done(function (res) {
+                if (res && res.success) { showMsg($msg, res.data.message, false); resetForm(); loadList(); }
+                else { showMsg($msg, (res && res.data && res.data.message) || '削除に失敗しました。', true); }
+            }).fail(function () { showMsg($msg, '通信エラーが発生しました。', true); });
+        });
+
+        resetForm();
+        loadList();
+    }
+
+    // =====================================================
+    //  シミュレーションCSV出力（運用管理者以上）
+    // =====================================================
+
+    function initSimulation() {
+        var $msg = $('#fa-sim-run-msg');
+        var $year = $('#fa-sim-year');
+        var $month = $('#fa-sim-month');
+        var $show = $('#fa-sim-show');
+        var $csv = $('#fa-sim-csv');
+        var $tbody = $('#fa-sim-result-tbody');
+
+        function csvCell(value) {
+            var text = String(value == null ? '' : value);
+            // 氏名などが表計算ソフトで数式として解釈されるのを防ぐ（負の数値は除く）
+            if (/^[\s]*[=+@]|^[\t\r\n]/.test(text) || /^[\s]*-(?!\d+$)/.test(text)) { text = "'" + text; }
+            return '"' + text.replace(/"/g, '""') + '"';
+        }
+
+        function fetchData() {
+            return faPost('fa_sim_get_simulation', 'sim', { year: $year.val(), month: $month.val() });
+        }
+
+        function render(data) {
+            var items = data.items || [];
+            var t = data.totals || {};
+            if (!items.length) {
+                $tbody.html('<tr><td colspan="6">この月のシミュレーション航路の実績はありません。</td></tr>');
+            } else {
+                $tbody.html(items.map(function (r) {
+                    return '<tr><td>' + esc(r.employee_name) + '</td>' +
+                        '<td>' + esc(r.route_no + ' ' + r.route_name) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(r.count) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(r.current_total) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(r.sim_total) + '</td>' +
+                        '<td class="fa-num">' + faFormatNumber(r.diff) + '</td></tr>';
+                }).join(''));
+            }
+            $('#fa-sim-t-count').text(faFormatNumber(t.count || 0));
+            $('#fa-sim-t-current').text(faFormatNumber(t.current_total || 0));
+            $('#fa-sim-t-sim').text(faFormatNumber(t.sim_total || 0));
+            $('#fa-sim-t-diff').text(faFormatNumber(t.diff || 0));
+        }
+
+        $show.on('click', function () {
+            $tbody.html('<tr><td colspan="6">読み込み中…</td></tr>');
+            fetchData().done(function (res) {
+                if (!res || !res.success) { $tbody.html('<tr><td colspan="6">取得に失敗しました。</td></tr>'); return; }
+                render(res.data);
+            }).fail(function () { $tbody.html('<tr><td colspan="6">通信エラーが発生しました。</td></tr>'); });
+        });
+
+        $csv.on('click', function () {
+            var year = $year.val();
+            var month = $month.val();
+            $csv.prop('disabled', true);
+            $msg.hide().removeClass('is-error is-success');
+            fetchData().done(function (res) {
+                if (!res || !res.success || !res.data || !Array.isArray(res.data.items)) {
+                    showMsg($msg, 'CSV出力用のデータを取得できませんでした。', true);
+                    return;
+                }
+                render(res.data);
+                var rows = [['対象年月', '社員コード', '氏名', '航路番号', '航路名', '件数', '現行手当', 'シミュレーション単価', 'シミュレーション手当', '差額']];
+                res.data.items.forEach(function (r) {
+                    rows.push([year + '-' + ('0' + month).slice(-2), r.employee_code, r.employee_name, r.route_no,
+                        r.route_name, r.count, r.current_total, r.sim_unit, r.sim_total, r.diff]);
+                });
+                var t = res.data.totals || {};
+                rows.push(['合計', '', '', '', '', t.count || 0, t.current_total || 0, '', t.sim_total || 0, t.diff || 0]);
+                var csv = '﻿' + rows.map(function (row) {
+                    return row.map(csvCell).join(',');
+                }).join('\r\n') + '\r\n';
+                var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = 'ferry-allowance-simulation-' + year + '-' + ('0' + month).slice(-2) + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+            }).fail(function () {
+                showMsg($msg, '通信エラーによりCSV出力できませんでした。再度お試しください。', true);
+            }).always(function () { $csv.prop('disabled', false); });
+        });
+    }
+
+    // =====================================================
     //  フェリー手当入力
     // =====================================================
 
@@ -1232,9 +1407,11 @@
             case 'ferry-allowance': initEntry(); break;
             case 'ferry-allowance-summary': initSummary(); break;
             case 'ferry-allowance-records': initRecords(); break;
+            case 'ferry-allowance-simulation': initSimulation(); break;
             case 'ferry-allowance-master':
                 if (FA.tab === 'companies') { initCompanies(); }
                 else if (FA.tab === 'boarding-names') { initBoardingNames(); }
+                else if (FA.tab === 'sim-routes') { initSimRoutes(); }
                 else { initRoutes(); }
                 break;
             default: break;
