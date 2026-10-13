@@ -699,7 +699,7 @@
             return faPost('fa_sim_get_simulation', 'sim', { year: $year.val(), month: $month.val() });
         }
 
-        var mode = 'route'; // 'route' = 人別且つ航路別合計 / 'person' = 人別合計
+        var mode = 'route'; // 'route' = 明細（人×航路） / 'person' = 人別サマリ
         var lastData = null;
         var $modeBtns = $('.fa-sim-mode__btn');
         var $routeCols = $('.fa-sim-col-route');
