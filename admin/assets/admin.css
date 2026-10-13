@@ -556,7 +556,9 @@
     min-width: 0;
 }
 
-.fa-master-form select {
+.fa-master-form select,
+.fa-master-form input[type="number"],
+.fa-master-form input[type="text"] {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
