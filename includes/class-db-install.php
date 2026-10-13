@@ -48,6 +48,11 @@ class FA_DB_Install {
         return $wpdb->prefix . 'ferry_records';
     }
 
+    public static function table_sim_routes() {
+        global $wpdb;
+        return $wpdb->prefix . 'ferry_sim_routes';
+    }
+
     // =====================================================
     //  テーブル作成
     // =====================================================
@@ -62,6 +67,7 @@ class FA_DB_Install {
         $companies = self::table_companies();
         $vehicles  = self::table_vehicles();
         $records   = self::table_records();
+        $sim       = self::table_sim_routes();
 
         $sqls = array();
 
@@ -147,6 +153,22 @@ class FA_DB_Install {
             KEY idx_vehicle (vehicle_code)
         ) $charset;";
 
+        // -----------------------------------------------------
+        // シミュレーション航路マスタ
+        //   旧・手当ルールとの差額試算用。航路マスタの航路を指定し、
+        //   その航路に適用するシミュレーション手当額を持つ。
+        //   給与計算（実績・月次サマリ）には一切影響しない。
+        // -----------------------------------------------------
+        $sqls[] = "CREATE TABLE {$sim} (
+            id          INT UNSIGNED        NOT NULL AUTO_INCREMENT              COMMENT '内部ID',
+            route_id    INT UNSIGNED        NOT NULL                             COMMENT 'FK: ferry_routes.id（ユニーク）',
+            allowance   INT                 NOT NULL DEFAULT 0                   COMMENT 'シミュレーション手当（円）',
+            created_at  DATETIME            NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at  DATETIME            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY uk_route (route_id)
+        ) $charset;";
+
         foreach ( $sqls as $sql ) {
             dbDelta( $sql );
         }
@@ -225,6 +247,7 @@ class FA_DB_Install {
         global $wpdb;
 
         $tables = array(
+            self::table_sim_routes(),
             self::table_records(),
             self::table_vehicles(),
             self::table_routes(),

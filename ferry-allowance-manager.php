@@ -3,7 +3,7 @@
  * Plugin Name: フェリー手当管理
  * Plugin URI:  https://example.com/ferry-allowance-manager
  * Description: フェリー利用実績を登録し、航路別のフェリー手当を算出・月次集計するプラグイン。employee-manager と連携して動作します。
- * Version:     1.3.0
+ * Version:     1.4.0
  * Author:      有限会社たんぽぽ運送
  * License:     GPL-2.0+
  * Text Domain: ferry-allowance-manager
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ===== 定数定義 =====
-define( 'FA_VERSION',     '1.3.0' );
+define( 'FA_VERSION',     '1.4.0' );
 define( 'FA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'FA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'FA_PLUGIN_FILE', __FILE__ );
@@ -26,6 +26,7 @@ require_once FA_PLUGIN_DIR . 'includes/class-vehicle-bridge.php';
 require_once FA_PLUGIN_DIR . 'includes/class-boarding-name.php';
 require_once FA_PLUGIN_DIR . 'includes/class-company.php';
 require_once FA_PLUGIN_DIR . 'includes/class-route.php';
+require_once FA_PLUGIN_DIR . 'includes/class-sim-route.php';
 require_once FA_PLUGIN_DIR . 'includes/class-record.php';
 require_once FA_PLUGIN_DIR . 'admin/class-admin-menu.php';   // 追加
 require_once FA_PLUGIN_DIR . 'includes/class-summary.php';   // 追加

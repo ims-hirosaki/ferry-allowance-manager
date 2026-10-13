@@ -12,9 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   ├── フェリー手当入力     ferry-allowance
  *   ├── 月次サマリ           ferry-allowance-summary
  *   ├── 実績一覧・編集       ferry-allowance-records
+ *   ├── シミュレーションCSV  ferry-allowance-simulation（運用管理者以上）
  *   └── マスタ管理           ferry-allowance-master（タブ切替）
  *         ├── 航路マスタ         ?tab=routes
  *         ├── フェリー会社マスタ ?tab=companies
+ *         ├── シミュレーション航路 ?tab=sim-routes（運用管理者以上）
  *         └── 乗車名マスタ       ?tab=boarding-names（manage_options のみ）
  */
 class FA_Admin_Menu {
@@ -24,6 +26,7 @@ class FA_Admin_Menu {
         'ferry-allowance',
         'ferry-allowance-summary',
         'ferry-allowance-records',
+        'ferry-allowance-simulation',
         'ferry-allowance-master',
     );
 
@@ -32,6 +35,7 @@ class FA_Admin_Menu {
         return array(
             'routes'         => array( '航路マスタ',         'access_custom_plugins', 'routes.php' ),
             'companies'      => array( 'フェリー会社マスタ', 'access_custom_plugins', 'companies.php' ),
+            'sim-routes'     => array( 'シミュレーション航路', FA_Sim_Route::CAPABILITY, 'sim-routes.php' ),
             'boarding-names' => array( '乗車名マスタ',       'manage_options',        'boarding-names.php' ),
         );
     }
@@ -82,6 +86,11 @@ class FA_Admin_Menu {
             'ferry-allowance', '実績一覧・編集', '実績一覧・編集',
             'access_custom_plugins', 'ferry-allowance-records',
             array( $this, 'render_records' )
+        );
+        add_submenu_page(
+            'ferry-allowance', 'シミュレーションCSV出力', 'シミュレーションCSV出力',
+            FA_Sim_Route::CAPABILITY, 'ferry-allowance-simulation',
+            array( $this, 'render_simulation' )
         );
         add_submenu_page(
             'ferry-allowance', 'マスタ管理', 'マスタ管理',
@@ -145,6 +154,7 @@ class FA_Admin_Menu {
                     'record'  => class_exists( 'FA_Record' ) ? wp_create_nonce( FA_Record::NONCE_ACTION ) : '',
                     'summary' => class_exists( 'FA_Summary' ) ? wp_create_nonce( FA_Summary::NONCE_ACTION ) : '',
                     'boarding' => wp_create_nonce( FA_Boarding_Name::NONCE_ACTION ),
+                    'sim'      => current_user_can( FA_Sim_Route::CAPABILITY ) ? wp_create_nonce( FA_Sim_Route::NONCE_ACTION ) : '',
                 ),
                 // 入力フォーム（A案サジェスト／自動反映）用マスタ
                 'routes'         => FA_Route::get_map_for_js(),
@@ -208,6 +218,12 @@ class FA_Admin_Menu {
         add_action( 'wp_ajax_fa_route_toggle',   array( 'FA_Route', 'ajax_toggle' ) );
         add_action( 'wp_ajax_fa_route_delete',   array( 'FA_Route', 'ajax_delete' ) );
 
+        // シミュレーション航路・シミュレーションCSV
+        add_action( 'wp_ajax_fa_sim_get_list',       array( 'FA_Sim_Route', 'ajax_get_list' ) );
+        add_action( 'wp_ajax_fa_sim_save',           array( 'FA_Sim_Route', 'ajax_save' ) );
+        add_action( 'wp_ajax_fa_sim_delete',         array( 'FA_Sim_Route', 'ajax_delete' ) );
+        add_action( 'wp_ajax_fa_sim_get_simulation', array( 'FA_Sim_Route', 'ajax_get_simulation' ) );
+
         // 利用実績（フェリー手当入力・実績一覧）
         if ( class_exists( 'FA_Record' ) ) {
             add_action( 'wp_ajax_fa_record_save',     array( 'FA_Record', 'ajax_save' ) );
@@ -237,6 +253,10 @@ class FA_Admin_Menu {
 
     public function render_records() {
         $this->render_view( 'records.php', '実績一覧・編集' );
+    }
+
+    public function render_simulation() {
+        $this->render_view( 'simulation.php', 'シミュレーションCSV出力', FA_Sim_Route::CAPABILITY );
     }
 
     public function render_master() {
@@ -269,8 +289,8 @@ class FA_Admin_Menu {
     /**
      * ビューを読み込む。未作成なら準備中プレースホルダを表示。
      */
-    private function render_view( $file, $title ) {
-        if ( ! current_user_can( 'access_custom_plugins' ) ) {
+    private function render_view( $file, $title, $capability = 'access_custom_plugins' ) {
+        if ( ! current_user_can( $capability ) ) {
             wp_die( '権限がありません。', '', array( 'response' => 403 ) );
         }
         $path = FA_PLUGIN_DIR . 'admin/views/' . $file;

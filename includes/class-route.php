@@ -244,6 +244,8 @@ class FA_Route {
         global $wpdb;
         $table = FA_DB_Install::table_routes();
         $wpdb->delete( $table, array( 'id' => (int) $id ), array( '%d' ) );
+        // シミュレーション航路の紐づけも削除（孤児行を残さない）
+        $wpdb->delete( FA_DB_Install::table_sim_routes(), array( 'route_id' => (int) $id ), array( '%d' ) );
         return array( 'success' => true, 'message' => '航路マスタを削除しました。' );
     }
 
