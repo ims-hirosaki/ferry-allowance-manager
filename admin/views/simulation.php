@@ -36,13 +36,18 @@ $fa_month = (int) gmdate( 'n', $fa_now );
             </button>
         </div>
 
+        <div class="fa-sim-mode" role="group" aria-label="集計単位">
+            <button type="button" class="button fa-sim-mode__btn is-active" data-mode="route" aria-pressed="true">人別且つ航路別合計</button>
+            <button type="button" class="button fa-sim-mode__btn" data-mode="person" aria-pressed="false">人別合計</button>
+        </div>
+
         <div class="fa-msg" id="fa-sim-run-msg" style="display:none;"></div>
 
         <table class="fa-table fa-summary-table">
             <thead>
                 <tr>
                     <th>氏名</th>
-                    <th>航路</th>
+                    <th class="fa-sim-col-route">航路</th>
                     <th style="width:5em;">件数</th>
                     <th style="width:9em;">現行手当</th>
                     <th style="width:9em;">シミュレーション手当</th>
@@ -54,7 +59,7 @@ $fa_month = (int) gmdate( 'n', $fa_now );
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="2" style="text-align:right;">合計</th>
+                    <th id="fa-sim-t-label" colspan="2" style="text-align:right;">合計</th>
                     <th class="fa-num" id="fa-sim-t-count">0</th>
                     <th class="fa-num" id="fa-sim-t-current">0</th>
                     <th class="fa-num" id="fa-sim-t-sim">0</th>

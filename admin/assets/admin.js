@@ -699,15 +699,48 @@
             return faPost('fa_sim_get_simulation', 'sim', { year: $year.val(), month: $month.val() });
         }
 
+        var mode = 'route'; // 'route' = 人別且つ航路別合計 / 'person' = 人別合計
+        var lastData = null;
+        var $modeBtns = $('.fa-sim-mode__btn');
+        var $routeCols = $('.fa-sim-col-route');
+        var $totalLabel = $('#fa-sim-t-label');
+
+        // 航路をまたいで社員ごとに合算する（行は社員コード順のまま）
+        function aggregateByPerson(items) {
+            var order = [];
+            var map = {};
+            items.forEach(function (r) {
+                var key = r.employee_code;
+                if (!map[key]) {
+                    map[key] = {
+                        employee_code: r.employee_code, employee_name: r.employee_name,
+                        count: 0, current_total: 0, sim_total: 0, diff: 0
+                    };
+                    order.push(key);
+                }
+                var a = map[key];
+                a.count += r.count;
+                a.current_total += r.current_total;
+                a.sim_total += r.sim_total;
+                a.diff += r.diff;
+            });
+            return order.map(function (k) { return map[k]; });
+        }
+
         function render(data) {
-            var items = data.items || [];
+            lastData = data;
+            var isPerson = mode === 'person';
+            var items = isPerson ? aggregateByPerson(data.items || []) : (data.items || []);
             var t = data.totals || {};
+            var cols = isPerson ? 5 : 6;
+            $routeCols.toggle(!isPerson);
+            $totalLabel.attr('colspan', isPerson ? 1 : 2);
             if (!items.length) {
-                $tbody.html('<tr><td colspan="6">この月のシミュレーション航路の実績はありません。</td></tr>');
+                $tbody.html('<tr><td colspan="' + cols + '">この月のシミュレーション航路の実績はありません。</td></tr>');
             } else {
                 $tbody.html(items.map(function (r) {
                     return '<tr><td>' + esc(r.employee_name) + '</td>' +
-                        '<td>' + esc(r.route_no + ' ' + r.route_name) + '</td>' +
+                        (isPerson ? '' : '<td>' + esc(r.route_no + ' ' + r.route_name) + '</td>') +
                         '<td class="fa-num">' + faFormatNumber(r.count) + '</td>' +
                         '<td class="fa-num">' + faFormatNumber(r.current_total) + '</td>' +
                         '<td class="fa-num">' + faFormatNumber(r.sim_total) + '</td>' +
@@ -719,6 +752,15 @@
             $('#fa-sim-t-sim').text(faFormatNumber(t.sim_total || 0));
             $('#fa-sim-t-diff').text(faFormatNumber(t.diff || 0));
         }
+
+        $modeBtns.on('click', function () {
+            mode = $(this).data('mode');
+            $modeBtns.each(function () {
+                var active = $(this).data('mode') === mode;
+                $(this).toggleClass('is-active', active).attr('aria-pressed', active ? 'true' : 'false');
+            });
+            if (lastData) { render(lastData); }
+        });
 
         $show.on('click', function () {
             $tbody.html('<tr><td colspan="6">読み込み中…</td></tr>');
@@ -739,13 +781,23 @@
                     return;
                 }
                 render(res.data);
-                var rows = [['対象年月', '社員コード', '氏名', '航路番号', '航路名', '件数', '現行手当', 'シミュレーション単価', 'シミュレーション手当', '差額']];
-                res.data.items.forEach(function (r) {
-                    rows.push([year + '-' + ('0' + month).slice(-2), r.employee_code, r.employee_name, r.route_no,
-                        r.route_name, r.count, r.current_total, r.sim_unit, r.sim_total, r.diff]);
-                });
+                var period = year + '-' + ('0' + month).slice(-2);
                 var t = res.data.totals || {};
-                rows.push(['合計', '', '', '', '', t.count || 0, t.current_total || 0, '', t.sim_total || 0, t.diff || 0]);
+                var rows;
+                if (mode === 'person') {
+                    rows = [['対象年月', '社員コード', '氏名', '件数', '現行手当', 'シミュレーション手当', '差額']];
+                    aggregateByPerson(res.data.items).forEach(function (r) {
+                        rows.push([period, r.employee_code, r.employee_name, r.count, r.current_total, r.sim_total, r.diff]);
+                    });
+                    rows.push(['合計', '', '', t.count || 0, t.current_total || 0, t.sim_total || 0, t.diff || 0]);
+                } else {
+                    rows = [['対象年月', '社員コード', '氏名', '航路番号', '航路名', '件数', '現行手当', 'シミュレーション単価', 'シミュレーション手当', '差額']];
+                    res.data.items.forEach(function (r) {
+                        rows.push([period, r.employee_code, r.employee_name, r.route_no,
+                            r.route_name, r.count, r.current_total, r.sim_unit, r.sim_total, r.diff]);
+                    });
+                    rows.push(['合計', '', '', '', '', t.count || 0, t.current_total || 0, '', t.sim_total || 0, t.diff || 0]);
+                }
                 var csv = '﻿' + rows.map(function (row) {
                     return row.map(csvCell).join(',');
                 }).join('\r\n') + '\r\n';
