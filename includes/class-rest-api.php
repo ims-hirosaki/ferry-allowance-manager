@@ -86,9 +86,13 @@ class FA_REST_API {
 
     /* ---------------------------------------------------------------
      * 社員一覧（軽量・在籍社員）
+     *   employee_code : 社員コード（実績の保存キー）
+     *   crew_code     : 現行の乗務員コード
+     *   crew_codes    : 乗務員コードの履歴（valid_from / valid_to は NULL = 無制限）
      * ------------------------------------------------------------- */
     public static function get_employees( WP_REST_Request $request ) {
-        $list = array();
+        $history = self::crew_code_history();
+        $list    = array();
         foreach ( FA_Employee_Bridge::get_active_employees() as $emp ) {
             $code = isset( $emp->employee_code ) ? (string) $emp->employee_code : '';
             if ( '' === $code ) {
@@ -97,6 +101,8 @@ class FA_REST_API {
             $list[] = array(
                 'employee_code' => $code,
                 'name'          => isset( $emp->name ) ? (string) $emp->name : '',
+                'crew_code'     => isset( $emp->crew_code ) ? (string) $emp->crew_code : '',
+                'crew_codes'    => isset( $history[ $code ] ) ? $history[ $code ] : array(),
             );
         }
         return rest_ensure_response( $list );
@@ -189,6 +195,35 @@ class FA_REST_API {
     /* ---------------------------------------------------------------
      * helpers
      * ------------------------------------------------------------- */
+    /**
+     * 乗務員コード履歴を 社員コード => [ 履歴行… ] で返す（1 クエリ）。
+     * 履歴テーブル（社員管理プラグイン側）が無い構成では空配列を返す。
+     */
+    private static function crew_code_history() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'emp_crew_code_history';
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+            return array();
+        }
+        $rows = $wpdb->get_results(
+            "SELECT m.employee_code, h.crew_code, h.valid_from, h.valid_to, h.is_current
+             FROM `{$table}` h
+             INNER JOIN `{$wpdb->prefix}emp_master` m ON m.id = h.employee_id
+             ORDER BY m.employee_code ASC, h.valid_from ASC, h.id ASC", // phpcs:ignore
+            ARRAY_A
+        );
+        $out = array();
+        foreach ( (array) $rows as $r ) {
+            $out[ (string) $r['employee_code'] ][] = array(
+                'crew_code'  => (string) $r['crew_code'],
+                'valid_from' => $r['valid_from'] ? (string) $r['valid_from'] : null,
+                'valid_to'   => $r['valid_to'] ? (string) $r['valid_to'] : null,
+                'is_current' => (int) $r['is_current'] === 1,
+            );
+        }
+        return $out;
+    }
+
     private static function split_year_month( $year_month ) {
         return array( (int) substr( $year_month, 0, 4 ), (int) substr( $year_month, 5, 2 ) );
     }

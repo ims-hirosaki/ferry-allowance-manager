@@ -156,7 +156,7 @@
 
 | エンドポイント | パラメータ | 概要 |
 |---|---|---|
-| `GET /wp-json/ferry-allowance-manager/v1/employees` | なし | 在籍社員一覧（`employee_code`, `name`） |
+| `GET /wp-json/ferry-allowance-manager/v1/employees` | なし | 在籍社員一覧（`employee_code`, `name`, 現行の `crew_code`, 乗務員コード履歴 `crew_codes`） |
 | `GET /wp-json/ferry-allowance-manager/v1/records` | `employee_code`（必須）, `year_month`（必須・`YYYY-MM`） | 1 人 × 1 か月の実績明細＋件数・手当合計 |
 | `GET /wp-json/ferry-allowance-manager/v1/summary` | `year_month`（必須・`YYYY-MM`） | 実績のある全社員の月次サマリ（件数・手当合計、`grand_*` 付き） |
 
@@ -165,4 +165,4 @@
 - エラー: パラメータ不正 400（`year_month` は正規表現で検証）、社員が存在せず実績も無い場合 404。
 - 金額は円の整数（`allowance`, `allowance_total`, `grand_total`）。項目名は英語スネークケース。
 - キャッシュは使わない（集計が軽く、氏名を社員マスタからライブ解決するため）。重くなった場合は `api-guidelines.md` §7 に従い導入する。
-
+- `crew_codes` は `{crew_code, valid_from, valid_to, is_current}` の配列（`valid_from`/`valid_to` が `null` は無制限）。`{prefix}emp_crew_code_history` を `emp_master.id` で結合して 1 クエリで取得し、テーブルが無い構成では空配列。実績は社員コードで保存しているため、`summary`/`records` には乗務員コードを含めない（`employees` と社員コードで突き合わせる）。
