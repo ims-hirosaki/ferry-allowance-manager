@@ -158,6 +158,7 @@
 |---|---|---|
 | `GET /wp-json/ferry-allowance-manager/v1/employees` | なし | 在籍社員一覧（`employee_code`, `name`, 現行の `crew_code`, 乗務員コード履歴 `crew_codes`） |
 | `GET /wp-json/ferry-allowance-manager/v1/records` | `employee_code`（必須）, `year_month`（必須・`YYYY-MM`） | 1 人 × 1 か月の実績明細＋件数・手当合計 |
+| `GET /wp-json/ferry-allowance-manager/v1/records-all`（試験的） | `year_month`（必須）, `offset`, `limit`（社員単位・0=全件） | 実績のある全社員の月次明細・合計を一括取得。`total_employees` / `returned` / `offset` / `elapsed_sec` / `errors` 付き |
 | `GET /wp-json/ferry-allowance-manager/v1/summary` | `year_month`（必須・`YYYY-MM`） | 実績のある全社員の月次サマリ（件数・手当合計、`grand_*` 付き） |
 
 - 認証: WordPress アプリケーションパスワード（Basic 認証・HTTPS）。

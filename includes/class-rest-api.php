@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  *   GET /wp-json/ferry-allowance-manager/v1/employees
  *   GET /wp-json/ferry-allowance-manager/v1/records?employee_code=XXX&year_month=YYYY-MM
+ *   GET /wp-json/ferry-allowance-manager/v1/records-all?year_month=YYYY-MM[&offset=0&limit=0]  （試験的）
  *   GET /wp-json/ferry-allowance-manager/v1/summary?year_month=YYYY-MM
  *
  * 認証は WordPress のアプリケーションパスワード（Basic認証）を想定する。
@@ -61,6 +62,21 @@ class FA_REST_API {
                     'required' => true,
                     'pattern'  => '^\d{4}-(0[1-9]|1[0-2])$',
                 ),
+            ),
+        ) );
+        // 【試験的】全従業員一括取得。offset / limit（社員単位）で分割取得もできる。
+        register_rest_route( self::NAMESPACE_V1, '/records-all', array(
+            'methods'             => 'GET',
+            'callback'            => array( __CLASS__, 'get_records_all' ),
+            'permission_callback' => array( __CLASS__, 'check_permission' ),
+            'args'                => array(
+                'year_month' => array(
+                    'type'     => 'string',
+                    'required' => true,
+                    'pattern'  => '^\d{4}-(0[1-9]|1[0-2])$',
+                ),
+                'offset'     => array( 'type' => 'integer', 'default' => 0, 'minimum' => 0 ),
+                'limit'      => array( 'type' => 'integer', 'default' => 0, 'minimum' => 0 ),
             ),
         ) );
         register_rest_route( self::NAMESPACE_V1, '/summary', array(
@@ -134,17 +150,7 @@ class FA_REST_API {
         foreach ( $rows as $r ) {
             $name    = (string) $r->employee_name;
             $total  += (int) $r->allowance;
-            $items[] = array(
-                'id'               => (int) $r->id,
-                'use_date'         => (string) $r->use_date,
-                'route_no'         => (int) $r->route_no,
-                'route_name'       => (string) $r->route_name,
-                'company_name'     => (string) $r->company_name,
-                'vehicle_code'     => (string) $r->vehicle_code,
-                'transport_bureau' => (string) $r->transport_bureau,
-                'allowance'        => (int) $r->allowance,
-                'note'             => (string) $r->note,
-            );
+            $items[] = self::format_record( $r );
         }
         if ( '' === $name && $emp && ! empty( $emp->name ) ) {
             $name = (string) $emp->name;
@@ -160,6 +166,55 @@ class FA_REST_API {
                 'allowance_total' => $total,
             ),
             'generated_at'  => current_time( 'c' ),
+        ) );
+    }
+
+    /* ---------------------------------------------------------------
+     * 【試験的】全従業員の月次実績を一括取得
+     *
+     * 実績のある社員ごとに明細と合計を返す（社員コード昇順）。
+     * 取得は 1 クエリ。offset / limit は社員単位で、分割取得したい場合に使う。
+     * ------------------------------------------------------------- */
+    public static function get_records_all( WP_REST_Request $request ) {
+        if ( function_exists( 'wp_raise_memory_limit' ) ) wp_raise_memory_limit( 'admin' );
+        if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 300 );
+
+        $started    = microtime( true );
+        $year_month = (string) $request['year_month'];
+        list( $year, $month ) = self::split_year_month( $year_month );
+
+        $grouped = array();
+        foreach ( FA_Record::get_records( array( 'year' => $year, 'month' => $month ) ) as $r ) {
+            $code = (string) $r->employee_code;
+            if ( ! isset( $grouped[ $code ] ) ) {
+                $grouped[ $code ] = array(
+                    'employee_code' => $code,
+                    'name'          => (string) $r->employee_name,
+                    'records'       => array(),
+                    'summary'       => array( 'count' => 0, 'allowance_total' => 0 ),
+                );
+            }
+            $grouped[ $code ]['records'][]                    = self::format_record( $r );
+            $grouped[ $code ]['summary']['count']            += 1;
+            $grouped[ $code ]['summary']['allowance_total']  += (int) $r->allowance;
+        }
+        ksort( $grouped, SORT_STRING );
+        $targets = array_values( $grouped );
+
+        $total  = count( $targets );
+        $offset = (int) $request['offset'];
+        $limit  = (int) $request['limit'];
+        $slice  = $limit > 0 ? array_slice( $targets, $offset, $limit ) : array_slice( $targets, $offset );
+
+        return rest_ensure_response( array(
+            'year_month'      => $year_month,
+            'total_employees' => $total,
+            'offset'          => $offset,
+            'returned'        => count( $slice ),
+            'elapsed_sec'     => round( microtime( true ) - $started, 2 ),
+            'errors'          => array(),
+            'employees'       => $slice,
+            'generated_at'    => current_time( 'c' ),
         ) );
     }
 
@@ -222,6 +277,20 @@ class FA_REST_API {
             );
         }
         return $out;
+    }
+
+    private static function format_record( $r ) {
+        return array(
+            'id'               => (int) $r->id,
+            'use_date'         => (string) $r->use_date,
+            'route_no'         => (int) $r->route_no,
+            'route_name'       => (string) $r->route_name,
+            'company_name'     => (string) $r->company_name,
+            'vehicle_code'     => (string) $r->vehicle_code,
+            'transport_bureau' => (string) $r->transport_bureau,
+            'allowance'        => (int) $r->allowance,
+            'note'             => (string) $r->note,
+        );
     }
 
     private static function split_year_month( $year_month ) {
