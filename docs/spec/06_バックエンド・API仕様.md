@@ -12,6 +12,7 @@
 | `FA_Route` | `includes/class-route.php` | 航路マスタの CRUD・AJAX |
 | `FA_Record` | `includes/class-record.php` | 実績の一括保存・取得・更新・削除・AJAX |
 | `FA_Summary` | `includes/class-summary.php` | 月次サマリ集計・AJAX |
+| `FA_REST_API` | `includes/class-rest-api.php` | 外部ツール（Excel / Power Query）向け REST API（取得専用） |
 | `FA_Admin_Menu` | `admin/class-admin-menu.php` | メニュー・アセット・AJAXフック・ビュー描画 |
 
 クラスはすべて静的メソッド中心（`FA_Admin_Menu` のみインスタンス化）。読み込みは `ferry-allowance-manager.php` の `require_once`（ブリッジ→乗車名→会社→航路→実績→メニュー→サマリの順）。
@@ -148,3 +149,20 @@
 - 航路・車番・社員は**ブリッジ／マスタ経由**でのみ参照し、他プラグインのテーブルを直接クエリしない。
 - 実績テーブルへ列を追加する場合は、`create_tables()` の `CREATE TABLE` を更新し、`FA_VERSION` を上げる（`fa_db_version` との差で dbDelta が走る）。
 - 実績の `INSERT`/`UPDATE` のフォーマット配列（`%s/%d`）は列数と順序に厳密に対応させる必要がある（`save_bulk` と `update` の2箇所）。
+
+## 8. REST API（Excel / Power Query 連携）
+
+共通ルールは attendance-manager リポジトリの `docs/api-guidelines.md` に従う。取得専用（`GET`）。
+
+| エンドポイント | パラメータ | 概要 |
+|---|---|---|
+| `GET /wp-json/ferry-allowance-manager/v1/employees` | なし | 在籍社員一覧（`employee_code`, `name`） |
+| `GET /wp-json/ferry-allowance-manager/v1/records` | `employee_code`（必須）, `year_month`（必須・`YYYY-MM`） | 1 人 × 1 か月の実績明細＋件数・手当合計 |
+| `GET /wp-json/ferry-allowance-manager/v1/summary` | `year_month`（必須・`YYYY-MM`） | 実績のある全社員の月次サマリ（件数・手当合計、`grand_*` 付き） |
+
+- 認証: WordPress アプリケーションパスワード（Basic 認証・HTTPS）。
+- 権限: 専用ケイパビリティ `fa_export_data`、または既存の `access_custom_plugins`。ロール「API取得」（`api_reader`）は共有し、`init` で無ければ作成・あれば `fa_export_data` のみ追加。未ログイン 401／権限不足 403。
+- エラー: パラメータ不正 400（`year_month` は正規表現で検証）、社員が存在せず実績も無い場合 404。
+- 金額は円の整数（`allowance`, `allowance_total`, `grand_total`）。項目名は英語スネークケース。
+- キャッシュは使わない（集計が軽く、氏名を社員マスタからライブ解決するため）。重くなった場合は `api-guidelines.md` §7 に従い導入する。
+

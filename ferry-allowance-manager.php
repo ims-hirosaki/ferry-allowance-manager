@@ -30,6 +30,7 @@ require_once FA_PLUGIN_DIR . 'includes/class-sim-route.php';
 require_once FA_PLUGIN_DIR . 'includes/class-record.php';
 require_once FA_PLUGIN_DIR . 'admin/class-admin-menu.php';   // 追加
 require_once FA_PLUGIN_DIR . 'includes/class-summary.php';   // 追加
+require_once FA_PLUGIN_DIR . 'includes/class-rest-api.php';
 // ===== 有効化フック =====
 register_activation_hook( __FILE__, 'fa_activate' );
 
@@ -72,6 +73,9 @@ function fa_init() {
     if ( get_option( 'fa_db_version' ) !== FA_VERSION ) {
         FA_DB_Install::activate();
     }
+
+    // 外部ツール（Excel / Power Query）向け REST API
+    FA_REST_API::init();
 
         // 管理画面メニュー
     if ( is_admin() ) {
