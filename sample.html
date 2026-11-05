@@ -131,6 +131,7 @@
       <p>2026 <kbd class="enter">Enter</kbd> → 欄が <b>2026/</b> になる → 8 <kbd class="enter">Enter</kbd> → <b>2026/08/</b> → 20 <kbd class="enter">Enter</kbd> → <b>2026/08/20</b> で確定し、航路番号の欄へ</p>
       <p>テンキーの <kbd>.</kbd> や <kbd>/</kbd> も区切りとして使える（2026.8.20 <kbd class="enter">Enter</kbd>）</p>
       <p>20260820 と8桁続けて打っても確定する</p>
+      <p><kbd class="enter">Enter</kbd> の代わりに <kbd>Tab</kbd> でも同じ動きになる（2026 <kbd>Tab</kbd> 08 <kbd>Tab</kbd> 20 <kbd>Tab</kbd>）</p>
     </div>
     <ul class="notes">
       <li class="good">「2026[Enter]08[Enter]20」のご要望どおりの打ち方</li>
@@ -148,6 +149,7 @@
       <p>0820 <kbd class="enter">Enter</kbd> または 820 <kbd class="enter">Enter</kbd> → 今年（<span class="this-year"></span>年）の8月20日</p>
       <p>空欄のまま <kbd class="enter">Enter</kbd> → 上の行と同じ日付</p>
       <p>A（20260820）、C（2026 <kbd class="enter">Enter</kbd> 08 <kbd class="enter">Enter</kbd> 20 <kbd class="enter">Enter</kbd>）の打ち方も使える</p>
+      <p><kbd class="enter">Enter</kbd> の代わりに <kbd>Tab</kbd> でも同じ（0820 <kbd>Tab</kbd>、2026 <kbd>Tab</kbd> 08 <kbd>Tab</kbd> 20 <kbd>Tab</kbd>）</p>
       <p>📅 ボタンでカレンダーからも選べる</p>
     </div>
     <ul class="notes">
@@ -158,7 +160,7 @@
       <li class="warn">できることが多いぶん、最初に打ち方を覚えてもらう必要がある</li>
     </ul>
     <div class="tbl-scroll"><table class="demo"><thead><tr><th>乗船日</th><th>航路番号</th><th>車番</th><th>保存される値</th></tr></thead><tbody></tbody></table></div>
-    <p class="hint">4桁の数字は、月日として成り立つとき（0101〜1231）は今年の月日、それ以外（2026 など）は年として扱います。</p>
+    <p class="hint">空欄で <kbd>Tab</kbd> を押したときは何も入れずに次の欄へ移ります（上の行のコピーは <kbd class="enter">Enter</kbd> のときだけ）。マウスで別の欄を押したときも、0820 などの入力は確定します。<br>4桁の数字は、月日として成り立つとき（0101〜1231）は今年の月日、それ以外（2026 など）は年として扱います。</p>
   </section>
 
 </div>
@@ -292,59 +294,75 @@
     var inp = cell.querySelector('input');
     selectOnFocus(inp);
 
-    function ok(y, m, d) {
+    function ok(y, m, d, move) {
       inp.value = toShow(y, m, d);
-      markInputs([inp], 'ok'); setOut(row, toSave(y, m, d), ''); goNext(row);
+      markInputs([inp], 'ok'); setOut(row, toSave(y, m, d), '');
+      if (move) { goNext(row); }
     }
     function ng(msg) { markInputs([inp], 'ng'); setOut(row, '', msg); }
-    function tryFull(y, m, d) { if (isValid(y, m, d)) { ok(y, m, d); } else { ng('存在しない日付です'); } }
+    function tryFull(y, m, d, move) {
+      if (isValid(y, m, d)) { ok(y, m, d, move); return true; }
+      ng('存在しない日付です'); return false;
+    }
 
     inp.addEventListener('input', function () {
       var v = inp.value.replace(/[.\-]/g, '/').replace(/[^\d\/]/g, '').replace(/\/{2,}/g, '/');
       if (v !== inp.value) { inp.value = v; }
       markInputs([inp], ''); setOut(row, '', '');
-      if (/^\d{8}$/.test(v)) { tryFull(v.slice(0, 4), v.slice(4, 6), v.slice(6, 8)); }
+      if (/^\d{8}$/.test(v)) { tryFull(v.slice(0, 4), v.slice(4, 6), v.slice(6, 8), true); }
     });
 
-    inp.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter') { return; }
-      e.preventDefault();
+    // 入力内容を解釈する。
+    //   step = true  … Enter / Tab：途中なら区切り「/」を足して欄にとどまり、確定したら次の欄へ
+    //   step = false … 欄から離れたとき：確定できる形だけ確定し、途中ならエラー表示
+    function process(step) {
       var v = inp.value;
       var segs = v.split('/');
       var last = segs[segs.length - 1];
+      var example = extended ? '例：0820 / 20260820 / 2026 Enter 08 Enter 20 Enter' : '例：2026 Enter 08 Enter 20 Enter / 20260820';
 
       if (segs.length === 1) {
         if (v === '') {
+          if (!step) { markInputs([inp], ''); setOut(row, '', ''); return; }
           if (extended) {
             var prev = row.previousElementSibling;
             if (prev && prev.dataset.saved) {
               var p = prev.dataset.saved.split('-');
-              ok(p[0], p[1], p[2]); return;
+              ok(p[0], p[1], p[2], true); return;
             }
             ng('上の行に日付がありません'); return;
           }
           ng('日付を入力してください'); return;
         }
-        if (/^\d{8}$/.test(v)) { tryFull(v.slice(0, 4), v.slice(4, 6), v.slice(6, 8)); return; }
-        if (extended && /^\d{3}$/.test(v)) { tryFull(THIS_YEAR, v.slice(0, 1), v.slice(1)); return; }
+        if (/^\d{8}$/.test(v)) { tryFull(v.slice(0, 4), v.slice(4, 6), v.slice(6, 8), step); return; }
+        if (extended && /^\d{3}$/.test(v)) { tryFull(THIS_YEAR, v.slice(0, 1), v.slice(1), step); return; }
         if (extended && /^\d{4}$/.test(v) && isValid(THIS_YEAR, v.slice(0, 2), v.slice(2))) {
-          ok(THIS_YEAR, v.slice(0, 2), v.slice(2)); return;
+          ok(THIS_YEAR, v.slice(0, 2), v.slice(2), step); return;
         }
-        if (/^\d{4}$/.test(v)) { inp.value = v + '/'; markInputs([inp], ''); return; }
-        ng(extended ? '例：0820 / 20260820 / 2026 Enter 08 Enter 20 Enter' : '例：2026 Enter 08 Enter 20 Enter / 20260820');
+        if (step && /^\d{4}$/.test(v)) { inp.value = v + '/'; markInputs([inp], ''); return; }
+        ng(step ? example : '日付が途中です（' + example + '）');
         return;
       }
       if (segs.length === 2) {
-        if (last === '') { return; }
-        if (/^\d{1,2}$/.test(last) && +last >= 1 && +last <= 12) { inp.value = segs[0] + '/' + pad(last) + '/'; markInputs([inp], ''); return; }
-        ng('月は1〜12で入力してください'); return;
+        if (step && last === '') { return; }
+        if (step && /^\d{1,2}$/.test(last) && +last >= 1 && +last <= 12) { inp.value = segs[0] + '/' + pad(last) + '/'; markInputs([inp], ''); return; }
+        ng(step ? '月は1〜12で入力してください' : '日付が途中です（日まで入力してください）'); return;
       }
       if (segs.length === 3) {
-        if (last === '') { return; }
-        if (/^\d{4}$/.test(segs[0]) && /^\d{1,2}$/.test(segs[1]) && /^\d{1,2}$/.test(last)) { tryFull(segs[0], segs[1], last); return; }
+        if (step && last === '') { return; }
+        if (/^\d{4}$/.test(segs[0]) && /^\d{1,2}$/.test(segs[1]) && /^\d{1,2}$/.test(last)) { tryFull(segs[0], segs[1], last, step); return; }
+        if (last === '') { ng('日付が途中です（日まで入力してください）'); return; }
       }
       ng('日付の形が正しくありません');
+    }
+
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); process(true); return; }
+      // Tab も Enter と同じ扱い。ただし空欄の Tab と Shift+Tab は通常どおり移動する
+      if (e.key === 'Tab' && !e.shiftKey && inp.value !== '') { e.preventDefault(); process(true); }
     });
+    // マウスで別の欄を押した・Shift+Tab で戻ったときなども、入力済みの内容を確定する
+    inp.addEventListener('blur', function () { process(false); });
 
     if (extended) {
       var btn = cell.querySelector('.cal-btn');
@@ -360,7 +378,7 @@
       picker.addEventListener('change', function () {
         if (!picker.value) { return; }
         var p = picker.value.split('-');
-        ok(p[0], p[1], p[2]);
+        ok(p[0], p[1], p[2], true);
       });
     }
   }
