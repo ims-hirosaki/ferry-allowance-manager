@@ -114,6 +114,13 @@ class FA_Route {
      */
     public static function get_map_for_js() {
         $rows = self::get_list( array( 'include_inactive' => false ) );
+        // 航路選択（入力候補）は航路番号順で表示する（表示順 sort_order は航路マスタ一覧用）
+        usort(
+            $rows,
+            function ( $a, $b ) {
+                return (int) $a->route_no - (int) $b->route_no;
+            }
+        );
         $out  = array();
         foreach ( $rows as $row ) {
             $out[] = array(
