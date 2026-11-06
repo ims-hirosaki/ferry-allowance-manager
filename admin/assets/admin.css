@@ -624,7 +624,7 @@
    ===================================================== */
 .fa-date {
     display: inline-flex;
-    align-items: center;
+    align-items: stretch;
     gap: 4px;
     position: relative;
     vertical-align: middle;
@@ -646,18 +646,27 @@
     min-width: 0;
 }
 
-.fa-date .fa-date__cal {
+/* WordPress 標準の .button の行の高さ・余白を打ち消し、アイコンをボタンの中央に置く */
+.fa-wrap .fa-date .fa-date__cal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
+    width: 32px;
+    min-width: 32px;
     min-height: 30px;
-    min-width: 30px;
-    padding: 0 5px;
+    padding: 0;
+    margin: 0;
     line-height: 1;
 }
 
-.fa-date .fa-date__cal .dashicons {
-    font-size: 18px;
+.fa-wrap .fa-date .fa-date__cal .dashicons {
+    display: block;
     width: 18px;
     height: 18px;
+    margin: 0;
+    font-size: 18px;
+    line-height: 18px;
     vertical-align: middle;
 }
 
