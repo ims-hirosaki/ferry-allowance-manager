@@ -114,6 +114,194 @@
         return y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
     }
 
+    // =====================================================
+    //  日付入力欄（テンキーだけで入力できる日付欄）
+    // =====================================================
+    //
+    // ブラウザ標準の <input type="date"> は年→月の移動に → / Tab が必要なため、
+    // テキスト欄 + 📅 ボタンで置き換える。欄には「YYYY/MM/DD」を表示し、
+    // 値の取り出しは dateInputVal()（'YYYY-MM-DD' / '' / null）で行う。
+    //
+    // 入力のしかた（Enter と Tab は同じ動き）
+    //   20260820            → 8桁目で確定して次の欄へ
+    //   0820 Enter / 820 Enter → 今年の 8/20
+    //   2026 Enter 08 Enter 20 Enter → 途中は「2026/」「2026/08/」と区切りを足して欄にとどまる
+    //   2026.8.20 Enter（テンキーの . や / も区切りに使える）
+    //   空欄で Enter        → data-copy-prev のある欄は上の行と同じ日付、ほかは次の欄へ
+    //   空欄で Tab / Shift+Tab → 通常どおり移動
+    //   欄から離れたとき     → 確定できる形なら確定、途中なら赤枠
+    // 確定・クリアのたびに 'fa:datechange' イベントを発火する。
+
+    function dateInputHtml(attrs) {
+        return '<span class="fa-date">' +
+            '<input type="text" class="fa-date__input ' + (attrs.cls || '') + '"' +
+            (attrs.id ? ' id="' + attrs.id + '"' : '') +
+            (attrs.copyPrev ? ' data-copy-prev="1"' : '') +
+            ' inputmode="numeric" maxlength="10" autocomplete="off" placeholder="例：0820">' +
+            '<button type="button" class="button fa-date__cal" tabindex="-1" title="カレンダーから選ぶ">' +
+            '<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span></button>' +
+            '<input type="date" class="fa-date__picker" tabindex="-1" aria-hidden="true">' +
+            '</span>';
+    }
+
+    // 'YYYY-MM-DD'（確定済み）/ ''（空欄）/ null（不正・途中）
+    function dateInputVal($input) {
+        return normalizeDate($input.val());
+    }
+
+    // 'YYYY-MM-DD' または '' をセットする
+    function dateInputSet($input, ymd) {
+        $input.val(ymd ? ymd.replace(/-/g, '/') : '').removeClass('is-invalid');
+        $input.data('fa-last', ymd || '');
+    }
+
+    var faDateInput = (function () {
+        var SEL = '.fa-date__input';
+
+        function pad(n) { return ('0' + n).slice(-2); }
+
+        function isValid(y, m, d) {
+            return normalizeDate(y + '-' + m + '-' + d) !== null;
+        }
+
+        // 次の入力可能な欄へフォーカスを移す
+        function focusNext(el) {
+            var $all = $('input, select, textarea, button').filter(function () {
+                var $t = $(this);
+                return $t.is(':visible') && !this.disabled && !this.readOnly &&
+                    $t.attr('tabindex') !== '-1' && $t.attr('type') !== 'hidden';
+            });
+            var idx = $all.index(el);
+            if (idx >= 0 && idx + 1 < $all.length) {
+                var next = $all.get(idx + 1);
+                next.focus();
+                if (next.select && next.tagName === 'INPUT') { next.select(); }
+            }
+        }
+
+        function fireIfChanged($in) {
+            var cur = normalizeDate($in.val()) || '';
+            if ($in.data('fa-last') !== cur) {
+                $in.data('fa-last', cur);
+                $in.trigger('fa:datechange');
+            }
+        }
+
+        function ok($in, y, m, d, move) {
+            $in.val(y + '/' + pad(m) + '/' + pad(d)).removeClass('is-invalid');
+            fireIfChanged($in);
+            if (move) { focusNext($in.get(0)); }
+        }
+
+        function ng($in) { $in.addClass('is-invalid'); }
+
+        function tryFull($in, y, m, d, move) {
+            if (isValid(y, m, d)) { ok($in, y, m, d, move); } else { ng($in); }
+        }
+
+        // step = true：Enter / Tab、false：欄から離れたとき
+        function process($in, step) {
+            var v = toHalfWidth($in.val());
+            var thisYear = new Date().getFullYear();
+            var segs = v.split('/');
+            var last = segs[segs.length - 1];
+
+            if (segs.length === 1) {
+                if (v === '') {
+                    $in.removeClass('is-invalid');
+                    fireIfChanged($in);
+                    if (!step) { return; }
+                    if ($in.data('copy-prev')) {
+                        var $prev = $in.closest('tr').prev('tr').find(SEL);
+                        var pv = $prev.length ? normalizeDate($prev.val()) : null;
+                        if (pv) {
+                            var p = pv.split('-');
+                            ok($in, p[0], p[1], p[2], true);
+                            return;
+                        }
+                    }
+                    focusNext($in.get(0));
+                    return;
+                }
+                if (/^\d{8}$/.test(v)) { tryFull($in, v.slice(0, 4), v.slice(4, 6), v.slice(6, 8), step); return; }
+                if (/^\d{3}$/.test(v)) { tryFull($in, thisYear, v.slice(0, 1), v.slice(1), step); return; }
+                // 4桁：月日として成り立てば今年の月日（0101〜1231）、そうでなければ年
+                if (/^\d{4}$/.test(v) && isValid(thisYear, v.slice(0, 2), v.slice(2))) {
+                    ok($in, thisYear, v.slice(0, 2), v.slice(2), step);
+                    return;
+                }
+                if (step && /^\d{4}$/.test(v)) { $in.val(v + '/').removeClass('is-invalid'); return; }
+                ng($in);
+                return;
+            }
+            if (segs.length === 2) {
+                if (step && last === '') { return; }
+                if (step && /^\d{1,2}$/.test(last) && +last >= 1 && +last <= 12) {
+                    $in.val(segs[0] + '/' + pad(last) + '/').removeClass('is-invalid');
+                    return;
+                }
+                ng($in);
+                return;
+            }
+            if (segs.length === 3) {
+                if (step && last === '') { return; }
+                if (/^\d{4}$/.test(segs[0]) && /^\d{1,2}$/.test(segs[1]) && /^\d{1,2}$/.test(last)) {
+                    tryFull($in, segs[0], segs[1], last, step);
+                    return;
+                }
+            }
+            ng($in);
+        }
+
+        // フォーカス時は全選択（打ち直しやすくする）。クリック直後の mouseup で選択が外れないようにする
+        $(document).on('focus', SEL, function () {
+            this.select();
+            $(this).data('fa-just-focused', true);
+        });
+        $(document).on('mouseup', SEL, function (e) {
+            if ($(this).data('fa-just-focused')) { e.preventDefault(); }
+            $(this).data('fa-just-focused', false);
+        });
+        $(document).on('keydown', SEL, function () { $(this).data('fa-just-focused', false); });
+
+        $(document).on('input', SEL, function () {
+            var $in = $(this);
+            var v = toHalfWidth($in.val()).replace(/[.\-]/g, '/').replace(/[^\d\/]/g, '').replace(/\/{2,}/g, '/');
+            if (v !== $in.val()) { $in.val(v); }
+            $in.removeClass('is-invalid');
+            if (/^\d{8}$/.test(v)) { tryFull($in, v.slice(0, 4), v.slice(4, 6), v.slice(6, 8), true); }
+        });
+
+        $(document).on('keydown', SEL, function (e) {
+            if (e.isComposing || e.keyCode === 229) { return; }
+            if (e.key === 'Enter') { e.preventDefault(); process($(this), true); return; }
+            if (e.key === 'Tab' && !e.shiftKey && $(this).val() !== '') { e.preventDefault(); process($(this), true); }
+        });
+
+        $(document).on('blur', SEL, function () { process($(this), false); });
+
+        // 📅 ボタン：隠しの標準日付欄のカレンダーを開く
+        $(document).on('click', '.fa-date__cal', function () {
+            var $wrap = $(this).closest('.fa-date');
+            var picker = $wrap.find('.fa-date__picker').get(0);
+            picker.value = normalizeDate($wrap.find(SEL).val()) || '';
+            if (typeof picker.showPicker === 'function') {
+                try { picker.showPicker(); return; } catch (err) { /* 下へ */ }
+            }
+            picker.focus();
+            picker.click();
+        });
+
+        $(document).on('change', '.fa-date__picker', function () {
+            if (!this.value) { return; }
+            var $in = $(this).closest('.fa-date').find(SEL);
+            var p = this.value.split('-');
+            ok($in, p[0], p[1], p[2], true);
+        });
+
+        return { process: process };
+    }());
+
     // 未登録の車番・乗車名を該当ツールの登録画面へ誘導するリンク
     function regLinkHtml(kind) {
         var url = (FA.links && FA.links[kind]) ? FA.links[kind] : '';
@@ -837,7 +1025,7 @@
         function rowHtml() {
             return '' +
                 '<tr class="fa-entry-row">' +
-                '<td><input type="date" class="fa-e-date"></td>' +
+                '<td>' + dateInputHtml({ cls: 'fa-e-date', copyPrev: true }) + '</td>' +
                 '<td><input type="text" class="fa-e-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名"></td>' +
                 '<td><input type="text" class="fa-e-company" readonly tabindex="-1"></td>' +
                 '<td><input type="text" class="fa-e-routename" readonly tabindex="-1"></td>' +
@@ -944,16 +1132,8 @@
             }, function () { setAutomaticEmployee($row); }, isManual);
         });
 
-        $tbody.on('input', '.fa-e-date', function () { ensureTrailingBlankRow(); });
-
-        // 日付は blur / change 時に YYYY-MM-DD へ正規化して表示（不正は赤表示）
-        $tbody.on('change blur', '.fa-e-date', function () {
-            var v = $.trim($(this).val());
-            if (!v) { $(this).removeClass('is-invalid'); return; }
-            var n = normalizeDate(v);
-            if (n) { $(this).val(n).removeClass('is-invalid'); }
-            else { $(this).addClass('is-invalid'); }
-        });
+        // 日付欄の入力・確定は faDateInput が担当（YYYY/MM/DD 表示、不正は赤枠）
+        $tbody.on('input fa:datechange', '.fa-e-date', function () { ensureTrailingBlankRow(); });
 
         $tbody.on('click', '.js-row-del', function () {
             $(this).closest('tr').remove();
@@ -1185,13 +1365,15 @@
         updateFilterOptions(FA.recordFilters);
 
         $('#fa-records-filter-clear').on('click', function () {
-            $fFrom.val(''); $fTo.val(''); $fEmp.val(''); $fVeh.val('');
+            dateInputSet($fFrom, ''); dateInputSet($fTo, ''); $fEmp.val(''); $fVeh.val('');
             load();
         });
         $fEmp.on('change', load);
         $year.add($month).on('change', load);
-        $fFrom.add($fTo).on('change', function () {
-            if ($fFrom.val() && $fTo.val() && $fFrom.val() > $fTo.val()) {
+        $fFrom.add($fTo).on('fa:datechange', function () {
+            var from = dateInputVal($fFrom), to = dateInputVal($fTo);
+            if (from === null || to === null) { return; }
+            if (from && to && from > to) {
                 showMsg($msg, '乗車月日の開始日が終了日より後になっています。', true);
                 return;
             }
@@ -1204,7 +1386,7 @@
             $tbody.html('<tr><td colspan="9">読み込み中…</td></tr>');
             faPost('fa_record_get_list', 'record', {
                 year: $year.val(), month: $month.val(),
-                date_from: $fFrom.val(), date_to: $fTo.val(),
+                date_from: dateInputVal($fFrom) || '', date_to: dateInputVal($fTo) || '',
                 employee_code: $fEmp.val(), vehicle_code: $fVeh.val()
             }).done(function (res) {
                 if (!res || !res.success) { $tbody.html('<tr><td colspan="9">取得に失敗しました。</td></tr>'); return; }
@@ -1357,7 +1539,7 @@
 
         function openEdit(d) {
             $eId.val(d.id);
-            $eDate.val(d.date);
+            dateInputSet($eDate, normalizeDate(d.date) || '');
             // 航路検索欄には「番号 航路名」を復元
             var no = String(d.routeno);
             var rname = routeByNo[no] ? routeByNo[no].name : '';
@@ -1381,7 +1563,7 @@
         }
 
         function closeEdit() {
-            $eId.val('0'); $eDate.val(''); $eRoute.val(''); $eCompany.val(''); $eRname.val('');
+            $eId.val('0'); dateInputSet($eDate, ''); $eRoute.val(''); $eCompany.val(''); $eRname.val('');
             $eVeh.val(''); $eEmp.val(''); $eAllow.val('');
             $eRoute.removeClass('is-invalid'); $eVeh.removeClass('is-invalid'); $eEmp.removeClass('is-invalid');
             editEmployeeCode = ''; editIsManual = false; $eManual.text('手動選択');
@@ -1391,13 +1573,14 @@
         }
 
         function update() {
-            var date = $.trim($eDate.val());
+            var date = dateInputVal($eDate);
             var no = parseRouteNo($eRoute.val());
             var vehicle = $.trim($eVeh.val());
             var empName = $.trim($eEmp.val());
             var empCode = editEmployeeCode;
 
-            if (!date) { showMsg($msg, '乗車月日を入力してください。', true); return; }
+            if (date === '') { showMsg($msg, '乗車月日を入力してください。', true); return; }
+            if (date === null) { showMsg($msg, '乗車月日が正しくありません。', true); return; }
             if (!no || !routeByNo[no]) { showMsg($msg, '航路が正しくありません。', true); return; }
             if (!vehicle || !vehicleSet[vehicle]) { showMsg($msg, '車番が正しくありません。', true); return; }
             if (!empName) { showMsg($msg, '乗車名を入力してください。', true); return; }

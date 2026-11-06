@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <table class="fa-table fa-entry-table" id="fa-entry-table">
             <thead>
                 <tr>
-                    <th style="width:9.5em;">乗車月日<span class="fa-req">*</span></th>
+                    <th style="width:11.5em;">乗車月日<span class="fa-req">*</span></th>
                     <th style="width:16em;">航路名検索<span class="fa-req">*</span></th>
                     <th style="width:10em;">フェリー会社</th>
                     <th>航路</th>

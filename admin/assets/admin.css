@@ -618,3 +618,63 @@
         width: 100%;
     }
 }
+
+/* =====================================================
+   日付入力欄（テキスト欄 + カレンダーボタン）
+   ===================================================== */
+.fa-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+    vertical-align: middle;
+}
+
+.fa-date .fa-date__input {
+    width: 7.5em;
+    margin: 0;
+}
+
+.fa-entry-table .fa-date {
+    display: flex;
+    width: 100%;
+}
+
+.fa-entry-table .fa-date .fa-date__input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+}
+
+.fa-date .fa-date__cal {
+    flex: 0 0 auto;
+    min-height: 30px;
+    min-width: 30px;
+    padding: 0 5px;
+    line-height: 1;
+}
+
+.fa-date .fa-date__cal .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+}
+
+/* カレンダーを開くためだけの標準日付欄（見えないように重ねる） */
+.fa-date .fa-date__picker {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fa-date .fa-date__input.is-invalid {
+    border-color: #d63638;
+    background: #fcf0f1;
+}

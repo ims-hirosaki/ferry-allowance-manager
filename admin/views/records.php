@@ -23,7 +23,7 @@ $fa_month = (int) gmdate( 'n', $fa_now );
         <div class="fa-records__editgrid">
             <div class="fa-field">
                 <label>乗車月日<span class="fa-req">*</span></label><br>
-                <input type="date" id="fa-records-edit-date">
+                <span class="fa-date"><input type="text" class="fa-date__input" id="fa-records-edit-date" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="例：0820"><button type="button" class="button fa-date__cal" tabindex="-1" title="カレンダーから選ぶ"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span></button><input type="date" class="fa-date__picker" tabindex="-1" aria-hidden="true"></span>
             </div>
             <div class="fa-field">
                 <label>航路名検索<span class="fa-req">*</span></label><br>
@@ -78,9 +78,9 @@ $fa_month = (int) gmdate( 'n', $fa_now );
 
         <div class="fa-records__toolbar fa-records__filters">
             <label>乗車月日：
-                <input type="date" id="fa-records-filter-from">
+                <span class="fa-date"><input type="text" class="fa-date__input" id="fa-records-filter-from" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="例：0820"><button type="button" class="button fa-date__cal" tabindex="-1" title="カレンダーから選ぶ"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span></button><input type="date" class="fa-date__picker" tabindex="-1" aria-hidden="true"></span>
                 〜
-                <input type="date" id="fa-records-filter-to">
+                <span class="fa-date"><input type="text" class="fa-date__input" id="fa-records-filter-to" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="例：0820"><button type="button" class="button fa-date__cal" tabindex="-1" title="カレンダーから選ぶ"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span></button><input type="date" class="fa-date__picker" tabindex="-1" aria-hidden="true"></span>
             </label>
             <label>乗車名：
                 <select id="fa-records-filter-emp">
