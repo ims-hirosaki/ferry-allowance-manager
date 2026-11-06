@@ -27,7 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <th style="width:11.5em;">乗車月日<span class="fa-req">*</span></th>
                     <th style="width:16em;">航路名検索<span class="fa-req">*</span></th>
                     <th style="width:10em;">フェリー会社</th>
-                    <th>航路</th>
                     <th style="width:8em;">車番<span class="fa-req">*</span></th>
                     <th style="width:16em;">乗車名<span class="fa-req">*</span></th>
                     <th style="width:8em;">フェリー手当</th>
@@ -39,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="6" style="text-align:right;">合計</th>
+                    <th colspan="5" style="text-align:right;">合計</th>
                     <th class="fa-num" id="fa-entry-total">0</th>
                     <th></th>
                 </tr>

@@ -1028,7 +1028,6 @@
                 '<td>' + dateInputHtml({ cls: 'fa-e-date', copyPrev: true }) + '</td>' +
                 '<td><input type="text" class="fa-e-routeinput" list="fa-route-datalist" placeholder="番号 or 航路名"></td>' +
                 '<td><input type="text" class="fa-e-company" readonly tabindex="-1"></td>' +
-                '<td><input type="text" class="fa-e-routename" readonly tabindex="-1"></td>' +
                 '<td><input type="text" class="fa-e-vehicle" list="fa-vehicle-datalist" placeholder="車番"></td>' +
                 '<td><span class="fa-employee-control">' +
                 '<input type="text" class="fa-e-empname" placeholder="車番から自動表示" readonly tabindex="-1">' +
@@ -1089,19 +1088,27 @@
             var $row = $(this).closest('tr');
             var no = parseRouteNo($(this).val());
             var $company = $row.find('.fa-e-company');
-            var $name = $row.find('.fa-e-routename');
             var $allow = $row.find('.fa-e-allow');
             if (no && routeByNo[no]) {
                 $company.val(routeByNo[no].company);
-                $name.val(routeByNo[no].name);
                 $allow.val(faFormatNumber(routeByNo[no].allowance));
                 $(this).removeClass('is-invalid');
             } else {
-                $company.val(''); $name.val(''); $allow.val('');
+                $company.val(''); $allow.val('');
                 if ($(this).val()) { $(this).addClass('is-invalid'); } else { $(this).removeClass('is-invalid'); }
             }
             recalcTotal();
             ensureTrailingBlankRow();
+        });
+
+        // 番号だけ打って欄を離れたら「番号 航路名」に補って、どの航路か確認できるようにする
+        // （入力中に書き換えると 12 などの2桁が打てないため、確定時の change だけで行う）
+        $tbody.on('change', '.fa-e-routeinput', function () {
+            var no = parseRouteNo($(this).val());
+            if (no && routeByNo[no]) {
+                var full = no + ' ' + routeByNo[no].name;
+                if ($(this).val() !== full) { $(this).val(full); }
+            }
         });
 
         $tbody.on('input change', '.fa-e-vehicle', function () {
